@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block main %}
+
+<!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="display-4 fw-bold mb-4">Simple Client & Project Management</h1>
+            <p class="lead text-muted mb-4">
+                QuickClient helps freelancers and small agencies track clients, manage projects, and stay organized—all in one place.
+            </p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap mb-4">
+                <a href="/register" class="btn btn-primary btn-lg px-5">Get Started Free</a>
+                <a href="/login" class="btn btn-outline-secondary btn-lg px-5">Log In</a>
+            </div>
+            <p class="small text-muted">No credit card required • Free forever</p>
+        </div>
+    </div>
+
+<!-- Preview Card -->
+    <div class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="bg-success text-white rounded p-3">
+                                <small class="opacity-75">Projected Revenue</small>
+                                <h3 class="mb-0">£24,500</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3">
+                                <small class="text-muted">Total Clients</small>
+                                <h3 class="mb-0">8</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="bg-light rounded p-3">
+                                <small class="text-muted">Active Projects</small>
+                                <h3 class="mb-0">12</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Project</th>
+                                <th>Client</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">Website Redesign</td>
+                                <td>Acme Corp</td>
+                                <td>£5,000</td>
+                                <td><span class="badge bg-primary">In Progress</span></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Brand Identity</td>
+                                <td>TechStart</td>
+                                <td>£3,500</td>
+                                <td><span class="badge bg-secondary">Idea</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Features -->
+    <div class="row mb-5">
+        <div class="col-lg-10 mx-auto">
+            <h2 class="text-center mb-5">Everything You Need</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">📊</div>
+                            <h5 class="card-title">Project Dashboard</h5>
+                            <p class="card-text text-muted">See all projects at a glance. Sort by deadline, importance, or value.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">👥</div>
+                            <h5 class="card-title">Client Management</h5>
+                            <p class="card-text text-muted">Store contact info and track status for all your clients.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">💰</div>
+                            <h5 class="card-title">Revenue Tracking</h5>
+                            <p class="card-text text-muted">Track project values and see total projected revenue.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">🎯</div>
+                            <h5 class="card-title">Priority Management</h5>
+                            <p class="card-text text-muted">Mark projects as High, Medium, or Low priority.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">📅</div>
+                            <h5 class="card-title">Deadline Tracking</h5>
+                            <p class="card-text text-muted">Set deadlines and never miss a delivery date.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 mb-3">✨</div>
+                            <h5 class="card-title">Clean & Simple</h5>
+                            <p class="card-text text-muted">No bloat. Just the features you need.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Who It's For -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card bg-light border-0">
+                <div class="card-body p-5">
+                    <h3 class="text-center mb-4">Perfect For</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">✅ Freelance Designers</li>
+                                <li class="mb-2">✅ Independent Consultants</li>
+                                <li class="mb-2">✅ Web Developers</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">✅ Content Creators</li>
+                                <li class="mb-2">✅ Small Agencies</li>
+                                <li class="mb-2">✅ Anyone with multiple clients</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Final CTA -->
+    <div class="row mb-5">
+        <div class="col-lg-6 mx-auto">
+            <div class="card bg-primary text-white border-0 shadow">
+                <div class="card-body p-5 text-center">
+                    <h3 class="mb-3">Ready to Get Organized?</h3>
+                    <p class="mb-4">Create your free account and start managing clients today.</p>
+                    <a href="/register" class="btn btn-light btn-lg px-5">Sign Up Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

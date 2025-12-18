@@ -1,0 +1,44 @@
+:root {
+    --bs-primary: #A51C30 !important;
+    --bs-primary-rgb: 165, 28, 48 !important;
+}
+
+
+.custom-logout-link {
+    color: rgba(255, 255, 255, 0.75);
+    transition: color 0.3s ease;
+}
+
+.custom-logout-link:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.25rem;
+}
+
+.btn-primary {
+    background-color: #A51C30 !important;
+    border-color: #A51C30 !important;
+}
+
+
+
+.btn-primary:hover {
+    background-color: #A51C30 !important;
+    border-color: #A51C30 !important;
+}
+
+
+.btn-outline-custom {
+  color: #A51C30 !important;
+  border-color: #A51C30 !important;
+}
+
+.btn-outline-custom:hover,
+.btn-outline-custom:focus,
+.btn-outline-custom:active {
+  background-color: #A51C30 !important;
+  color: #FFFFFF !important;
+  border-color: #A51C30 !important;
+}
+
+

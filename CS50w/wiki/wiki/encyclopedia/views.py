@@ -41,3 +41,23 @@ def random_page(request):
     random_title = random.choice(entries)
     
     return redirect("entry", title=random_title)
+
+def search(request):
+    query = request.GET.get("q", "")
+    
+    entries = util.list_entries()
+    
+    for entry in entries:
+        if query.lower() == entry.lower():
+            return redirect("entry", title=entry)
+    
+    matches = []
+    
+    for entry in entries:
+        if query.lower() in entry.lower():
+            matches.append(entry)
+    
+    return render(request, "encyclopedia/results.html", {
+        "results": matches,
+        "query": query, 
+    })

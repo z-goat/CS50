@@ -34,7 +34,7 @@ def entry(request, title):
         "title": title,
         "html_content": html_content,
     })
-    
+
 def random_page(request):
     entries = util.list_entries()
     
@@ -60,4 +60,34 @@ def search(request):
     return render(request, "encyclopedia/results.html", {
         "results": matches,
         "query": query, 
+    })
+
+def create(request):
+    if request.method == "POST":
+        title = request.POST.get("title")
+        content = request.POST.get("content")
+        
+        entries = util.list_entries()
+        if any(title.lower() == entry.lower() for entry in entries):
+            return render(request, "encyclopedia/error.html", {
+                "message": "An entry with this title already exists.",
+                "code": "409"
+            })
+        
+        util.save_entry(title, content)
+        return redirect("entry", title=title)
+        
+    return render(request, "encyclopedia/create.html")
+
+def edit(request, title):
+    if request.method == "POST":
+        content = request.POST.get("content")
+        util.save_entry(title, content)
+        return redirect("entry", title=title)
+    
+    # GET request: load the existing content into the form
+    content = util.get_entry(title)
+    return render(request, "encyclopedia/edit.html", {
+        "title": title,
+        "content": content
     })

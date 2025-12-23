@@ -75,18 +75,18 @@ async function loadStats() {
     const data = await response.json();
     
     const statsHtml = `
-      <div class="d-flex justify-content-around">
-        <div>
-          <strong>${data.total_members}</strong>
-          <small class="d-block">MPs Tracked</small>
+      <div class="d-flex justify-content-around flex-wrap gap-3">
+        <div class="stat-box flex-fill">
+          <span class="stat-value">${data.total_members}</span>
+          <div class="stat-label">MPs Tracked</div>
         </div>
-        <div>
-          <strong>${data.parties.length}</strong>
-          <small class="d-block">Political Parties</small>
+        <div class="stat-box flex-fill">
+          <span class="stat-value">${data.parties.length}</span>
+          <div class="stat-label">Political Parties</div>
         </div>
-        <div>
-          <strong>${data.total_interests}</strong>
-          <small class="d-block">Interests Recorded</small>
+        <div class="stat-box flex-fill">
+          <span class="stat-value">${data.total_interests}</span>
+          <div class="stat-label">Interests Recorded</div>
         </div>
       </div>
     `;
@@ -95,7 +95,7 @@ async function loadStats() {
   } catch (err) {
     console.error('Failed to load stats:', err);
     document.getElementById('stats-container').innerHTML = 
-      '<small class="text-danger">Unable to load statistics</small>';
+      '<div class="alert alert-warning">Unable to load statistics</div>';
   }
 }
 
@@ -199,11 +199,11 @@ function renderMemberProfile(member) {
     portrait.src = member.portrait_url;
     portrait.alt = `${member.name} portrait`;
     portrait.onerror = function() {
-      this.src = 'https://via.placeholder.com/150/0d6efd/ffffff?text=' + 
+      this.src = 'https://via.placeholder.com/150/006747/ffffff?text=' + 
                   encodeURIComponent(member.name.split(' ').map(n => n[0]).join(''));
     };
   } else {
-    portrait.src = 'https://via.placeholder.com/150/0d6efd/ffffff?text=' + 
+    portrait.src = 'https://via.placeholder.com/150/006747/ffffff?text=' + 
                    encodeURIComponent(member.name.split(' ').map(n => n[0]).join(''));
   }
 
@@ -212,24 +212,31 @@ function renderMemberProfile(member) {
   document.getElementById('mp-party').textContent = member.party;
   document.getElementById('mp-constituency').textContent = member.constituency;
 
-  // Stats
+  // Add party color indicator
+  const partyCard = document.querySelector('#profile-view .card');
+  const partyClass = getPartyClass(member.party);
+  if (partyClass) {
+    partyCard.classList.add(partyClass);
+  }
+
+  // Stats with new design
   const statsHtml = `
-    <div class="row g-2 text-center">
+    <div class="row g-2">
       <div class="col-6">
-        <div class="p-2 bg-light rounded">
-          <strong class="d-block fs-4">${member.interest_count}</strong>
-          <small class="text-muted">Registered Interests</small>
+        <div class="stat-box">
+          <span class="stat-value data-value">${member.interest_count}</span>
+          <div class="stat-label">Registered<br>Interests</div>
         </div>
       </div>
       <div class="col-6">
-        <div class="p-2 bg-light rounded">
-          <strong class="d-block fs-4">Phase 2</strong>
-          <small class="text-muted">Conflict Score</small>
+        <div class="stat-box">
+          <span class="stat-value data-value">TBD</span>
+          <div class="stat-label">Conflict<br>Score</div>
         </div>
       </div>
-      <div class="col-12 mt-2">
-        <small class="text-muted">
-          Last Updated: ${formatDate(member.last_updated)}
+      <div class="col-12 mt-3">
+        <small class="text-muted" style="font-size: 0.75rem;">
+          <strong>Last Updated:</strong> ${formatDate(member.last_updated)}
         </small>
       </div>
     </div>
@@ -241,18 +248,29 @@ function renderMemberProfile(member) {
   if (member.interest_count === 0) {
     interestsContainer.innerHTML = `
       <div class="alert alert-info">
-        <strong>No interests recorded yet.</strong>
-        <p class="mb-0">Interest data will be synchronized in Phase 2 of development.</p>
+        <h5 class="alert-heading">No Financial Interests Recorded</h5>
+        <p class="mb-0">This MP has not declared any registerable financial interests, or data synchronization is pending (Phase 2).</p>
       </div>
     `;
   } else {
     interestsContainer.innerHTML = `
-      <div class="alert alert-success">
-        <strong>${member.interest_count} interests recorded.</strong>
-        <p class="mb-0">Detailed analysis and categorization coming in Phase 2.</p>
+      <div class="alert alert-info">
+        <h5 class="alert-heading">${member.interest_count} Registered Interests</h5>
+        <p class="mb-0">Detailed categorization and risk analysis will be available in Phase 2. Raw disclosure data is available via the official Register of Members' Financial Interests.</p>
       </div>
     `;
   }
+}
+
+// Helper function to get party CSS class
+function getPartyClass(party) {
+  const partyLower = party.toLowerCase();
+  if (partyLower.includes('labour')) return 'party-labour';
+  if (partyLower.includes('conservative')) return 'party-conservative';
+  if (partyLower.includes('snp')) return 'party-snp';
+  if (partyLower.includes('liberal')) return 'party-libdem';
+  if (partyLower.includes('green')) return 'party-green';
+  return null;
 }
 
 // Utility: Format date

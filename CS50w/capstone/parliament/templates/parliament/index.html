@@ -11,10 +11,10 @@
             <div class="col-md-8 col-lg-6">
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h1 class="text-center mb-4">Find Your MP</h1>
-                        <p class="text-center text-muted mb-4">
-                            Search by postcode, constituency name, or MP name to discover 
-                            registered financial interests and voting records.
+                        <h1 class="text-center mb-4">Constituent Accountability Portal</h1>
+                        <p class="text-center mb-4" style="font-size: 1.1rem; color: #555;">
+                            Search by postcode, constituency, or MP name to access verified 
+                            financial disclosure records and voting analysis.
                         </p>
                         
                         <form id="postcode-form">
@@ -23,26 +23,32 @@
                                     type="text" 
                                     class="form-control" 
                                     id="postcode-input"
-                                    placeholder="e.g. SW1A 0AA, Westminster, or Keir Starmer"
+                                    placeholder="Enter postcode (SW1A 0AA) or MP name"
                                     aria-label="Search"
                                     required
                                 >
                                 <button class="btn btn-primary" type="submit" id="search-btn">
-                                    Search
+                                    Search Records
                                 </button>
                             </div>
-                            <small class="text-muted">
-                                Try: "SW1A 0AA", "Bristol Central", or an MP's name
-                            </small>
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    <strong>Examples:</strong> SW1A 0AA • Bristol Central • Keir Starmer
+                                </small>
+                            </div>
                         </form>
 
-                        <div id="search-status" class="mt-3"></div>
+                        <div id="search-status" class="mt-4"></div>
                     </div>
                 </div>
 
                 <!-- Quick Stats -->
-                <div class="mt-4 text-center" id="stats-container">
-                    <small class="text-muted">Loading database statistics...</small>
+                <div class="mt-4" id="stats-container">
+                    <div class="d-flex justify-content-around text-center">
+                        <div class="skeleton-line" style="width: 100px; height: 60px;"></div>
+                        <div class="skeleton-line" style="width: 100px; height: 60px;"></div>
+                        <div class="skeleton-line" style="width: 100px; height: 60px;"></div>
+                    </div>
                 </div>
             </div>
         </div>

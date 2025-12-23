@@ -1,0 +1,129 @@
+{% extends "parliament/layout.html" %}
+{% load static %}
+
+{% block title %}Influence Index - Find Your MP{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Home View: Postcode Search -->
+    <div id="home-view" class="view">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h1 class="text-center mb-4">Find Your MP</h1>
+                        <p class="text-center text-muted mb-4">
+                            Search by postcode, constituency name, or MP name to discover 
+                            registered financial interests and voting records.
+                        </p>
+                        
+                        <form id="postcode-form">
+                            <div class="input-group input-group-lg mb-3">
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="postcode-input"
+                                    placeholder="e.g. SW1A 0AA, Westminster, or Keir Starmer"
+                                    aria-label="Search"
+                                    required
+                                >
+                                <button class="btn btn-primary" type="submit" id="search-btn">
+                                    Search
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                Try: "SW1A 0AA", "Bristol Central", or an MP's name
+                            </small>
+                        </form>
+
+                        <div id="search-status" class="mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="mt-4 text-center" id="stats-container">
+                    <small class="text-muted">Loading database statistics...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Profile View -->
+    <div id="profile-view" class="view" style="display: none;">
+        <button class="btn btn-link mb-3" id="back-btn">&larr; Back to Search</button>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center">
+                        <img 
+                            id="mp-portrait" 
+                            src="" 
+                            alt="MP Portrait" 
+                            class="rounded-circle mb-3"
+                            style="width: 150px; height: 150px; object-fit: cover;"
+                        >
+                        <h3 id="mp-name"></h3>
+                        <p class="text-muted mb-1" id="mp-party"></p>
+                        <p class="text-muted" id="mp-constituency"></p>
+                        <hr>
+                        <div id="mp-stats"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h4>Registered Interests</h4>
+                        <p class="text-muted">
+                            Interest data will be available in Phase 2
+                        </p>
+                        <div id="interests-container">
+                            <!-- Interests will be loaded here in Phase 2 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Research View (Placeholder) -->
+    <div id="research-view" class="view" style="display: none;">
+        <h2>Research Dashboard</h2>
+        <p class="text-muted">Parliament-wide analytics will be available in Phase 3</p>
+    </div>
+
+    <!-- About View -->
+    <div id="about-view" class="view" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h2>About the Influence Index</h2>
+                <p>
+                    The Influence Index is a civic technology platform that combines 
+                    official UK Parliament data with AI-powered analysis to provide 
+                    transparency into MPs' financial interests and voting patterns.
+                </p>
+                <h4 class="mt-4">Data Sources</h4>
+                <ul>
+                    <li>UK Parliament Members API</li>
+                    <li>Register of Members' Financial Interests</li>
+                    <li>Commons Voting Records</li>
+                    <li>TheyWorkForYou API</li>
+                </ul>
+                <h4 class="mt-4">Methodology</h4>
+                <p>
+                    Conflict risk scores are calculated using a weighted algorithm 
+                    that correlates financial interests with voting behavior on 
+                    related policy areas. Full methodology documentation is available 
+                    in the project documentation.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/app.js' %}"></script>
+{% endblock %}

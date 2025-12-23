@@ -2,17 +2,30 @@
 
 {% block body %}
     <div class="container">
-        <h2>Listing: {{ listing.title }}</h2>
+        <h2>{{ listing.title }}</h2>
 
-        {% if user.is_authenticated %}
-            <form action="{% url 'listing' listing.id %}" method="POST">
+        {% if not listing.is_active %}
+            <div class="alert alert-warning">
+                <strong>This listing is closed.</strong>
+                {% if is_winner %}
+                    Congratulations! You won this auction!
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if user.is_authenticated and listing.is_active %}
+            <form action="{% url 'listing' listing.id %}" method="POST" style="display: inline;">
                 {% csrf_token %}
                 {% if is_watched %}
-                    <button type="submit" name="watchlist_remove" class="btn btn-secondary">Remove from Watchlist</button>
+                    <button type="submit" name="watchlist_remove" class="btn btn-warning">Remove from Watchlist</button>
                 {% else %}
-                    <button type="submit" name="watchlist_add" class="btn btn-primary">Add to Watchlist</button>
+                    <button type="submit" name="watchlist_add" class="btn btn-success">Add to Watchlist</button>
                 {% endif %}
             </form>
+
+            {% if is_owner %}
+                <a href="{% url 'close_listing' listing.id %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to close this listing?')">Close Listing</a>
+            {% endif %}
         {% endif %}
 
         <hr>
@@ -26,11 +39,59 @@
                 {% endif %}
             </div>
             <div class="col-md-6">
+                <p><strong>Description:</strong></p>
                 <p>{{ listing.description }}</p>
-                <h3>Price: ${{ listing.current_price }}</h3>
-                <p>Category: {{ listing.category|default:"No Category Listed" }}</p>
-                <p>Listed by: <strong>{{ listing.owner.username }}</strong></p>
+                
+                <h3>Current Price: ${{ listing.current_price }}</h3>
+                <p>{{ bid_count }} bid(s) so far.</p>
+                
+                {% if listing.is_active and user.is_authenticated and not is_owner %}
+                    <form action="{% url 'listing' listing.id %}" method="POST">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <input type="number" name="bid_amount" step="0.01" min="{{ listing.current_price }}" class="form-control" placeholder="Enter bid amount" required>
+                        </div>
+                        <button type="submit" name="place_bid" class="btn btn-primary">Place Bid</button>
+                    </form>
+                {% elif not user.is_authenticated %}
+                    <p><a href="{% url 'login' %}">Sign in</a> to place a bid.</p>
+                {% elif is_owner %}
+                    <p class="text-muted">You cannot bid on your own listing.</p>
+                {% endif %}
+
+                <hr>
+                <p><strong>Category:</strong> {{ listing.category|default:"No Category Listed" }}</p>
+                <p><strong>Listed by:</strong> {{ listing.owner.username }}</p>
             </div>
+        </div>
+
+        <hr>
+
+        <h3>Comments</h3>
+        
+        {% if user.is_authenticated %}
+            <form action="{% url 'add_comment' listing.id %}" method="POST" class="mb-4">
+                {% csrf_token %}
+                <div class="form-group">
+                    <textarea name="comment_content" class="form-control" rows="3" placeholder="Add a comment..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Post Comment</button>
+            </form>
+        {% else %}
+            <p><a href="{% url 'login' %}">Sign in</a> to add a comment.</p>
+        {% endif %}
+
+        <div class="comments-section">
+            {% for comment in comments %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <p class="card-text">{{ comment.content }}</p>
+                        <p class="card-subtitle text-muted">— {{ comment.user.username }}</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No comments yet.</p>
+            {% endfor %}
         </div>
     </div>
 {% endblock %}

@@ -146,6 +146,7 @@ h4 {
     padding: 0.75rem 1rem;
     font-size: 1rem;
     transition: border-color 0.2s ease;
+    min-height: 44px; /* Touch-friendly minimum */
 }
 
 .form-control:focus {
@@ -164,6 +165,8 @@ h4 {
     letter-spacing: 0.05em;
     padding: 0.75rem 2rem;
     transition: all 0.2s ease;
+    min-height: 44px; /* Touch-friendly minimum */
+    cursor: pointer;
 }
 
 .btn-primary:hover,
@@ -174,10 +177,15 @@ h4 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+.btn-primary:active {
+    transform: translateY(0);
+}
+
 .btn-primary:disabled {
     background-color: #cccccc;
     border-color: #999999;
     transform: none;
+    cursor: not-allowed;
 }
 
 .btn-link {
@@ -186,6 +194,9 @@ h4 {
     text-decoration: none;
     border-bottom: 2px solid transparent;
     transition: border-color 0.2s ease;
+    min-height: 44px; /* Touch-friendly */
+    display: inline-flex;
+    align-items: center;
 }
 
 .btn-link:hover {
@@ -422,32 +433,138 @@ footer a:hover {
         text-align: left;
     }
     
+    /* Typography adjustments */
     h1 {
         font-size: 1.75rem;
+        line-height: 1.3;
     }
     
     h2 {
         font-size: 1.5rem;
     }
     
-    .navbar-brand {
+    h3 {
         font-size: 1.25rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Stats boxes stack vertically */
+    .stat-box {
+        margin-bottom: 0.75rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    /* Form elements */
+    .input-group-lg .form-control {
+        font-size: 0.95rem;
+    }
+    
+    .btn-primary {
+        padding: 0.65rem 1.5rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Navigation */
+    .nav-link {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.85rem;
     }
 }
 
 @media (max-width: 576px) {
     .container {
-        padding-left: 15px;
-        padding-right: 15px;
+        padding-left: 10px;
+        padding-right: 10px;
     }
     
     .card-body {
-        padding: 1.25rem;
+        padding: 1rem;
     }
     
     #mp-portrait {
-        width: 120px;
-        height: 120px;
+        width: 100px;
+        height: 100px;
+        border-width: 2px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.3rem;
+    }
+    
+    /* Make stats truly stack on tiny screens */
+    .d-flex.flex-wrap {
+        flex-direction: column !important;
+    }
+    
+    .stat-box {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    /* Smaller stat values on mobile */
+    .stat-value {
+        font-size: 1.75rem;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+    }
+    
+    /* Input group stacking */
+    .input-group-lg {
+        flex-direction: column;
+    }
+    
+    .input-group-lg .form-control,
+    .input-group-lg .btn {
+        width: 100%;
+        border-radius: 0 !important;
+    }
+    
+    .input-group-lg .form-control {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Alert text sizing */
+    .alert {
+        font-size: 0.9rem;
+    }
+    
+    .alert h5 {
+        font-size: 1.1rem;
+    }
+    
+    /* Back button */
+    .btn-link {
+        font-size: 0.9rem;
+    }
+    
+    /* Navbar brand stacking */
+    .navbar-brand {
+        font-size: 1rem;
+        padding: 0.75rem 0;
+    }
+    
+    /* Profile view improvements */
+    #profile-view .row {
+        margin: 0;
+    }
+    
+    #profile-view .col-md-4,
+    #profile-view .col-md-8 {
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 

@@ -192,7 +192,7 @@ async function loadMemberProfile(memberId) {
   }
 }
 
-function renderMemberProfile(member) {
+async function renderMemberProfile(member) {
   // Portrait
   const portrait = document.getElementById('mp-portrait');
   if (member.portrait_url) {
@@ -219,7 +219,7 @@ function renderMemberProfile(member) {
     partyCard.classList.add(partyClass);
   }
 
-  // Stats with new design
+  // Stats
   const statsHtml = `
     <div class="row g-2">
       <div class="col-6">
@@ -243,20 +243,77 @@ function renderMemberProfile(member) {
   `;
   document.getElementById('mp-stats').innerHTML = statsHtml;
 
-  // Interests placeholder
-  const interestsContainer = document.getElementById('interests-container');
-  if (member.interest_count === 0) {
-    interestsContainer.innerHTML = `
-      <div class="alert alert-info">
-        <h5 class="alert-heading">No Financial Interests Recorded</h5>
-        <p class="mb-0">This MP has not declared any registerable financial interests, or data synchronization is pending (Phase 2).</p>
-      </div>
-    `;
-  } else {
-    interestsContainer.innerHTML = `
-      <div class="alert alert-info">
-        <h5 class="alert-heading">${member.interest_count} Registered Interests</h5>
-        <p class="mb-0">Detailed categorization and risk analysis will be available in Phase 2. Raw disclosure data is available via the official Register of Members' Financial Interests.</p>
+  // Load interests
+  await loadMemberInterests(member.member_id);
+}
+
+async function loadMemberInterests(memberId) {
+  const container = document.getElementById('interests-container');
+  container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+  
+  try {
+    const response = await fetch(`/api/members/${memberId}/interests/`);
+    const data = await response.json();
+    
+    if (data.interests.length === 0) {
+      container.innerHTML = `
+        <div class="alert alert-info">
+          <h5 class="alert-heading">No Financial Interests Recorded</h5>
+          <p class="mb-0">This MP has not declared any registerable financial interests.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Group interests by sector
+    const bySector = {};
+    data.interests.forEach(interest => {
+      const sector = interest.ai_sector || 'Uncategorized';
+      if (!bySector[sector]) {
+        bySector[sector] = [];
+      }
+      bySector[sector].push(interest);
+    });
+    
+    // Render interests
+    let html = '';
+    Object.keys(bySector).sort().forEach(sector => {
+      const interests = bySector[sector];
+      html += `
+        <div class="mb-3">
+          <h5 class="border-bottom pb-2 mb-2">${sector} (${interests.length})</h5>
+      `;
+      
+      interests.forEach(interest => {
+        const confidencePercent = Math.round(interest.ai_confidence * 100);
+        const valueStr = interest.ai_value ? `£${interest.ai_value.toLocaleString()}` : 'Value not disclosed';
+        
+        html += `
+          <div class="card mb-2">
+            <div class="card-body p-3">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <span class="badge bg-secondary">${interest.category}</span>
+                ${interest.processed ? `<small class="text-muted">${confidencePercent}% confidence</small>` : '<small class="text-warning">Not processed</small>'}
+              </div>
+              <p class="mb-2">${interest.summary}</p>
+              ${interest.ai_payer ? `<p class="mb-1"><strong>Organization:</strong> ${interest.ai_payer}</p>` : ''}
+              <p class="mb-1"><strong>Estimated Value:</strong> <span class="data-value">${valueStr}</span></p>
+              ${interest.registered_date ? `<small class="text-muted">Registered: ${formatDate(interest.registered_date)}</small>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+    });
+    
+    container.innerHTML = html;
+    
+  } catch (err) {
+    console.error('Failed to load interests:', err);
+    container.innerHTML = `
+      <div class="alert alert-warning">
+        Failed to load interests. Please try again.
       </div>
     `;
   }

@@ -135,3 +135,6 @@ CACHES = {
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'parliament' / 'static']
+
+
+GEMINI_API_KEY = "AIzaSyAvHGV4sLIHCiSHmejuAkqotmbms4Msc1g"

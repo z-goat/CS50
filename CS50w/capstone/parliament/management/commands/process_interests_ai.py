@@ -60,12 +60,14 @@ class Command(BaseCommand):
                 interest.save()
                 processed += 1
                 
-                time.sleep(3.5)
+                time.sleep(2.5)
+                self.stdout.write(f'Finished processing an interest of {interest.member.name}')
+
                 
             except Exception as e:
                 errors += 1
                 self.stdout.write(self.style.WARNING(f'Error on {interest.id}: {e}'))
-                time.sleep(3.5)
+                time.sleep(2.5)
                 
         end_time = time.perf_counter()
         elapsed = end_time - start_time

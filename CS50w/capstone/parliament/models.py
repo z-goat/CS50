@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
@@ -50,6 +51,20 @@ class Interest(models.Model):
     ai_payer = models.CharField(max_length=200, blank=True, null=True)
     ai_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_current = models.BooleanField(default=True)
+
+    # Add an expiration date field so that non-current interests can be tracked and deleted after a year
+    expiration_date = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Update expiration date logic when is_current changes
+        if not self.is_current and self.expiration_date is None:
+            # Set the expiration for 1 year from the current time
+            self.expiration_date = timezone.now() + timedelta(days=365)
+        elif self.is_current and self.expiration_date is not None:
+            # Clear the expiration date if the item becomes current again
+            self.expiration_date = None
+        super().save(*args, **kwargs)
+
     
     # Metadata
     last_ai_processed = models.DateTimeField(null=True, blank=True)

@@ -36,7 +36,7 @@ Extract the following information from this interest declaration:
 2. PAYER: The company or organization name
 3. VALUE: Estimated monetary value in GBP (if mentioned or can be reasonably estimated)
 4. IS_CURRENT: true if currently active, false if past/historical
-5. CONFIDENCE: Your confidence in the extraction (0.0 to 1.0)
+5. CONFIDENCE: Your confidence in the extraction (0.0 to 1.0 MAKE SURE TO PROVIDE IT IN DECIMAL FORMAT)
 
 Interest declaration:
 "{summary_text}"
@@ -66,6 +66,20 @@ If information is not available, use null for that field. Be conservative with e
         # Parse JSON
         data = json.loads(text)
         
+        # If the confidence is given as a percentage, convert to decimal
+        if isinstance(data.get("confidence"), (int, float)) and data["confidence"] > 1:
+            data["confidence"] = data["confidence"] / 100
+            
+        # Clean and convert value to float if possible    
+        raw_value = data.get("value")
+        
+        if isinstance(raw_value, str):
+            cleaned = raw_value.replace("£", "").replace(",", "").strip()
+            try:
+                data["value"] = float(cleaned)
+            except ValueError:
+                data["value"] = None
+
         # Validate with Pydantic
         validated = InterestExtraction(**data)
         

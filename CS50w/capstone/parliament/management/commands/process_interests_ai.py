@@ -11,8 +11,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--limit',
             type=int,
-            default=50,
-            help='Number of interests to process (default: 50)'
+            default=3238,
+            help='Number of interests to process (default: 3238)'
         )
         parser.add_argument(
             '--force',
@@ -27,13 +27,14 @@ class Command(BaseCommand):
         limit = options['limit']
         force = options['force']
         
-        # Get interests that need processing
+        # Get interests that need processing, ordered by ID to ensure consistent processing order
         if force:
-            interests = Interest.objects.all()[:limit]
+            interests = Interest.objects.order_by("id")[:limit]
         else:
             interests = Interest.objects.filter(
                 last_ai_processed__isnull=True
-            )[:limit]
+            ).order_by("id")[:limit]
+
         
         interests_list = list(interests)
         total = len(interests_list)
@@ -42,20 +43,27 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('✓ No interests need processing'))
             return
         
-        self.stdout.write(f'Processing {total} interests through Gemini AI...\n')
+        self.stdout.write(f'Processing {total} interest(s) through Gemini AI...\n\n')
         
         processed = 0
         errors = 0
         
-        for interest in interests:
+        for interest in interests_list:
             try:
                 extracted = extract_interest_data(interest.summary)
                 
                 
-                if not extracted or 'sector' not in extracted:
-                    raise ValueError("AI failed to return valid data")
+                required_fields = {"sector", "confidence", "payer", "value", "is_current"}
+                if not extracted or not required_fields.issubset(extracted):
+                    raise ValueError(f"Incomplete AI response: {extracted}")
+
 
                 interest.ai_sector = extracted.get('sector')
+                interest.ai_confidence = extracted.get('confidence')
+                interest.ai_payer = extracted.get('payer')
+                interest.ai_value = extracted.get('value')
+                interest.is_current = extracted.get('is_current')
+                interest.last_ai_processed = timezone.now()
                 
                 interest.save()
                 processed += 1

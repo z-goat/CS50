@@ -19,6 +19,13 @@ class Command(BaseCommand):
             action='store_true',
             help='Reprocess interests even if already processed'
         )
+        
+        parser.add_argument(
+            "--member_id",
+            type=int,
+            help="Process interests for a specific member ID only",
+            default=None,
+        )
 
     def handle(self, *args, **options):
         # Start timer here
@@ -26,14 +33,21 @@ class Command(BaseCommand):
         
         limit = options['limit']
         force = options['force']
-        
-        # Get interests that need processing, ordered by ID to ensure consistent processing order
+        member_id = options['member_id']
+
+        # Step 1: base queryset
         if force:
-            interests = Interest.objects.order_by("id")[:limit]
+            interests = Interest.objects.all()
         else:
-            interests = Interest.objects.filter(
-                last_ai_processed__isnull=True
-            ).order_by("id")[:limit]
+            interests = Interest.objects.filter(last_ai_processed__isnull=True)
+
+        # Step 2: member filter
+        if member_id is not None:
+            interests = interests.filter(member_id=member_id)
+
+        # Step 3: order and slice
+        interests = interests.order_by("id")[:limit]
+
 
         
         interests_list = list(interests)
@@ -51,9 +65,9 @@ class Command(BaseCommand):
         for interest in interests_list:
             try:
                 extracted = extract_interest_data(interest.summary)
-                
-                
-                required_fields = {"sector", "confidence", "payer", "value", "is_current"}
+
+
+                required_fields = {"sector", "confidence", "payer", "value", "is_current", "summary"}
                 if not extracted or not required_fields.issubset(extracted):
                     raise ValueError(f"Incomplete AI response: {extracted}")
 
@@ -64,18 +78,19 @@ class Command(BaseCommand):
                 interest.ai_value = extracted.get('value')
                 interest.is_current = extracted.get('is_current')
                 interest.last_ai_processed = timezone.now()
+                interest.summary = extracted.get('summary')
                 
                 interest.save()
                 processed += 1
                 
-                time.sleep(2.5)
+                time.sleep(1.5)  # Rate limiting
                 self.stdout.write(f'Finished processing an interest of {interest.member.name}')
 
                 
             except Exception as e:
                 errors += 1
                 self.stdout.write(self.style.WARNING(f'Error on {interest.id}: {e}'))
-                time.sleep(2.5)
+                time.sleep(1.5)
                 
         end_time = time.perf_counter()
         elapsed = end_time - start_time

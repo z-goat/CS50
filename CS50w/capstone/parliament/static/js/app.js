@@ -1,4 +1,4 @@
-// SPA State Management
+// SPA State Management with URL Routing
 const app = {
   currentView: 'home',
   currentMember: null,
@@ -7,33 +7,82 @@ const app = {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   initializeNavigation();
+  initializeRouter();
   loadStats();
   setupPostcodeSearch();
+  
+  // Load initial view based on URL
+  handleRoute();
 });
+
+// Initialize History API routing
+function initializeRouter() {
+  // Handle browser back/forward buttons
+  window.addEventListener('popstate', (e) => {
+    handleRoute();
+  });
+  
+  // Intercept all internal links
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link && link.href && link.origin === location.origin && !link.href.includes('/api/')) {
+      e.preventDefault();
+      navigateTo(link.pathname);
+    }
+  });
+}
+
+// Handle current route
+function handleRoute() {
+  const path = window.location.pathname;
+  
+  // Parse route
+  if (path === '/' || path === '') {
+    showView('home');
+    updateActiveNav('nav-home');
+  } else if (path === '/research/') {
+    showView('research');
+    updateActiveNav('nav-research');
+  } else if (path === '/about/') {
+    showView('about');
+    updateActiveNav('nav-about');
+  } else if (path.startsWith('/mp/')) {
+    // Extract member ID from URL
+    const match = path.match(/\/mp\/(\d+)\/?/);
+    if (match) {
+      const memberId = parseInt(match[1]);
+      loadMemberProfile(memberId);
+      updateActiveNav('nav-home');
+    }
+  }
+}
+
+// Navigate to a new URL
+function navigateTo(path) {
+  history.pushState(null, '', path);
+  handleRoute();
+}
 
 // Navigation System
 function initializeNavigation() {
   document.getElementById('nav-home').addEventListener('click', (e) => {
     e.preventDefault();
-    showView('home');
-    updateActiveNav('nav-home');
+    navigateTo('/');
   });
 
   document.getElementById('nav-research').addEventListener('click', (e) => {
     e.preventDefault();
-    showView('research');
-    updateActiveNav('nav-research');
+    navigateTo('/research/');
   });
 
   document.getElementById('nav-about').addEventListener('click', (e) => {
     e.preventDefault();
-    showView('about');
-    updateActiveNav('nav-about');
+    navigateTo('/about/');
   });
 
-  document.getElementById('back-btn').addEventListener('click', () => {
-    showView('home');
-    updateActiveNav('nav-home');
+  document.getElementById('back-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigateTo('/');
   });
 }
 
@@ -48,6 +97,15 @@ function showView(viewName) {
   }
   
   app.currentView = viewName;
+  
+  // Update page title
+  const titles = {
+    home: 'Find Your MP - Influence Index',
+    research: 'Research Dashboard - Influence Index',
+    about: 'About - Influence Index',
+    profile: 'MP Profile - Influence Index'
+  };
+  document.title = titles[viewName] || 'Influence Index';
 }
 
 function updateActiveNav(activeId) {
@@ -123,8 +181,8 @@ function setupPostcodeSearch() {
 
       if (response.ok) {
         if (data.in_database && data.member_id) {
-          // Load full profile
-          await loadMemberProfile(data.member_id);
+          // Navigate to member profile
+          navigateTo(`/mp/${data.member_id}/`);
         } else {
           // Show basic info without full profile
           showBasicMPInfo(data);
@@ -138,7 +196,7 @@ function setupPostcodeSearch() {
     } finally {
       // Restore button state
       btn.disabled = false;
-      btn.textContent = 'Search';
+      btn.textContent = 'Search Records';
     }
   });
 }
@@ -177,18 +235,28 @@ async function loadMemberProfile(memberId) {
     
     if (!response.ok) {
       showError('Failed to load MP profile');
+      navigateTo('/');
       return;
     }
     
     const data = await response.json();
     
     app.currentMember = data;
+    
+    // Update URL if not already there
+    if (!window.location.pathname.includes(`/mp/${memberId}`)) {
+      history.pushState(null, '', `/mp/${memberId}/`);
+    }
+    
+    // Update page title
+    document.title = `${data.name} - Influence Index`;
+    
     renderMemberProfile(data);
     showView('profile');
-    updateActiveNav('nav-home'); // Keep home active since we're still in search flow
   } catch (err) {
     console.error('Failed to load profile:', err);
     showError('Network error loading profile');
+    navigateTo('/');
   }
 }
 
@@ -214,6 +282,8 @@ async function renderMemberProfile(member) {
 
   // Add party color indicator
   const partyCard = document.querySelector('#profile-view .card');
+  // Remove old party classes
+  partyCard.classList.remove('party-labour', 'party-conservative', 'party-snp', 'party-libdem', 'party-green');
   const partyClass = getPartyClass(member.party);
   if (partyClass) {
     partyCard.classList.add(partyClass);

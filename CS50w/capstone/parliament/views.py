@@ -9,7 +9,7 @@ from parliament.models import Member
 import json
 
 
-def index(request):
+def index(request, *args, **kwargs):
     """Main landing page"""
     return render(request, 'parliament/index.html')
 

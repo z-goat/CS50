@@ -14,6 +14,7 @@ class InterestExtraction(BaseModel):
     payer: Optional[str] = Field(description="Company or organization name")
     value: Optional[float] = Field(description="Estimated monetary value in GBP")
     is_current: bool = Field(default=True, description="Whether interest is currently active")
+    summary: Optional[str] = Field(description="Brief summary")
 
 
 def extract_interest_data(summary_text: str) -> dict:
@@ -37,6 +38,7 @@ Extract the following information from this interest declaration:
 3. VALUE: Estimated monetary value in GBP (if mentioned or can be reasonably estimated)
 4. IS_CURRENT: true if currently active, false if past/historical
 5. CONFIDENCE: Your confidence in the extraction (0.0 to 1.0 MAKE SURE TO PROVIDE IT IN DECIMAL FORMAT)
+6. SUMMARY: A brief summary of the interest no longer than 30 words
 
 Interest declaration:
 "{summary_text}"
@@ -47,7 +49,8 @@ Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
   "confidence": 0.95,
   "payer": "Company Name Ltd",
   "value": 50000,
-  "is_current": true
+  "is_current": true,
+  "summary": "Payment received for consultancy on renewable energy projects."
 }}
 
 If information is not available, use null for that field. Be conservative with estimates."""
@@ -88,7 +91,8 @@ If information is not available, use null for that field. Be conservative with e
             'confidence': validated.confidence,
             'payer': validated.payer,
             'value': validated.value,
-            'is_current': validated.is_current
+            'is_current': validated.is_current,
+            'summary': validated.summary,
         }
         
     except json.JSONDecodeError as e:
@@ -99,7 +103,8 @@ If information is not available, use null for that field. Be conservative with e
             'confidence': 0.0,
             'payer': None,
             'value': None,
-            'is_current': True
+            'is_current': True,
+            'summary': None
         }
     except Exception as e:
         print(f"Extraction error: {e}")
@@ -108,5 +113,6 @@ If information is not available, use null for that field. Be conservative with e
             'confidence': 0.0,
             'payer': None,
             'value': None,
-            'is_current': True
+            'is_current': True,
+            'summary': None
         }

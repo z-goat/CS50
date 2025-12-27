@@ -10,6 +10,12 @@ class Command(BaseCommand):
             action='store_true',
             help='Confirm deletion of AI data'
         )
+        
+        parser.add_argument(
+            '--member_id',
+            type=int,
+            help='Clear AI data for interests of a specific member only'
+        )
 
     def handle(self, *args, **options):
         total = Interest.objects.count()
@@ -23,8 +29,12 @@ class Command(BaseCommand):
             ))
             return
         
-        # Clear AI data
-        Interest.objects.all().update(
+        # Apply filtering if member_id is specified
+        interests = Interest.objects.all()
+        if options['member_id']:
+            interests = interests.filter(member_id=options['member_id'])
+
+        interests.update(
             ai_sector=None,
             ai_confidence=0.0,
             ai_payer=None,

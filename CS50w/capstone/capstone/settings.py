@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_q',
     'parliament',  
 ]
 
@@ -140,10 +139,3 @@ STATICFILES_DIRS = [BASE_DIR / 'parliament' / 'static']
 
 GEMINI_API_KEY = "AIzaSyAvHGV4sLIHCiSHmejuAkqotmbms4Msc1g"
 
-Q_CLUSTER = {
-    'name': 'ProjectQueue',
-    'workers': 4,       # Number of simultaneous background tasks
-    'timeout': 90,
-    'retry': 120,
-    'orm': 'default',   # Use your Django database as the broker
-}

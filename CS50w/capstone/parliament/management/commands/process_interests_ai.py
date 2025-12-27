@@ -67,11 +67,12 @@ class Command(BaseCommand):
                 extracted = extract_interest_data(interest.summary)
 
 
-                required_fields = {"sector", "confidence", "payer", "value", "is_current", "summary"}
+                required_fields = {"interest_type", "sector", "confidence", "payer", "value", "is_current", "summary"}
                 if not extracted or not required_fields.issubset(extracted):
                     raise ValueError(f"Incomplete AI response: {extracted}")
 
 
+                interest.interest_type = extracted.get('interest_type')
                 interest.ai_sector = extracted.get('sector')
                 interest.ai_confidence = extracted.get('confidence')
                 interest.ai_payer = extracted.get('payer')

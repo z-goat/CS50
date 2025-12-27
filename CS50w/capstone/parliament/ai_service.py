@@ -8,7 +8,7 @@ import json
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class InterestExtraction(BaseModel):
-    """Structured data model for interest extraction"""
+    interest_type: str = Field(description="AI-determined interest type")
     sector: str = Field(description="Industry sector (e.g., Energy, Finance, Healthcare)")
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence score 0-1")
     payer: Optional[str] = Field(description="Company or organization name")
@@ -33,18 +33,28 @@ def extract_interest_data(summary_text: str) -> dict:
     prompt = f"""You are a data extraction system analyzing UK Parliamentary financial interest declarations.
 
 Extract the following information from this interest declaration:
-1. SECTOR: Choose from: Energy, Finance, Healthcare, Real Estate, Technology, Media, Legal, Consulting, Agriculture, Transport, Public Service, Social Welfare, Education, Diplomacy, Other
-2. PAYER: The company or organization name
-3. VALUE: Estimated monetary value in GBP (if mentioned or can be reasonably estimated)
-4. IS_CURRENT: true if currently active, false if past/historical
-5. CONFIDENCE: Your confidence in the extraction (0.0 to 1.0 MAKE SURE TO PROVIDE IT IN DECIMAL FORMAT)
-6. SUMMARY: A brief summary of the interest no longer than 30 words
+1. INTEREST_TYPE: Choose one of the following types:
+   - shareholding
+   - consultancy
+   - speech
+   - gift
+   - trusteeship
+   - donation
+   - property
+   - other
+2. SECTOR: Choose from: Energy, Finance, Healthcare, Real Estate, Technology, Media, Legal, Consulting, Agriculture, Transport, Public Service, Social Welfare, Education, Diplomacy, Other
+3. PAYER: The company or organization name
+4. VALUE: Estimated monetary value in GBP (if mentioned or can be reasonably estimated)
+5. IS_CURRENT: true if currently active, false if past/historical
+6. CONFIDENCE: Your confidence in the extraction (0.0 to 1.0 MAKE SURE TO PROVIDE IT IN DECIMAL FORMAT)
+7. SUMMARY: A brief summary of the interest no longer than 30 words
 
 Interest declaration:
 "{summary_text}"
 
 Respond ONLY with valid JSON in this exact format (no markdown, no explanation):
 {{
+  "interest_type": "consultancy",  
   "sector": "Energy",
   "confidence": 0.95,
   "payer": "Company Name Ltd",
@@ -87,6 +97,7 @@ If information is not available, use null for that field. Be conservative with e
         validated = InterestExtraction(**data)
         
         return {
+            'interest_type': validated.interest_type,
             'sector': validated.sector,
             'confidence': validated.confidence,
             'payer': validated.payer,
@@ -99,6 +110,7 @@ If information is not available, use null for that field. Be conservative with e
         print(f"JSON parse error: {e}")
         print(f"Response was: {text}")
         return {
+            'interest_type': "other",
             'sector': 'Other',
             'confidence': 0.0,
             'payer': None,
@@ -109,6 +121,7 @@ If information is not available, use null for that field. Be conservative with e
     except Exception as e:
         print(f"Extraction error: {e}")
         return {
+            'interest_type': "other",
             'sector': 'Other',
             'confidence': 0.0,
             'payer': None,

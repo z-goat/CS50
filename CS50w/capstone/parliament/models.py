@@ -30,19 +30,26 @@ class Member(models.Model):
 class Interest(models.Model):
     """Represents a declared financial interest"""
     
-    CATEGORY_CHOICES = [
-        ('1', 'Employment and earnings'),
-        ('2', 'Donations and other support'),
-        ('3', 'Gifts, benefits and hospitality'),
-        ('4', 'Visits outside the UK'),
-        ('5', 'Land and property'),
-        ('6', 'Shareholdings'),
-        ('7', 'Miscellaneous'),
-    ]
+    INTEREST_TYPE_CHOICES = [
+    ("shareholding", "Shareholding"),
+    ("consultancy", "Paid Employment / Consultancy"),
+    ("speech", "Paid Speech / Appearance"),
+    ("gift", "Gifts / Hospitality / Travel"),
+    ("trusteeship", "Unpaid Directorship / Trusteeship"),
+    ("donation", "Donation / Grant / Sponsorship"),
+    ("property", "Land / Property / Real Estate"),
+    ("other", "Other / Miscellaneous"),
+]
+
+    interest_type = models.CharField(
+    max_length=30,
+    choices=INTEREST_TYPE_CHOICES,
+    default="other",
+)
+
     
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='interests')
-    category_code = models.CharField(max_length=2, choices=CATEGORY_CHOICES)
-    summary = models.TextField()
+    raw_summary = models.TextField()
     registered_date = models.DateField(null=True, blank=True)
     
     # AI-extracted fields (populated in Phase 2)
@@ -74,25 +81,25 @@ class Interest(models.Model):
     class Meta:
         ordering = ['-registered_date']
         indexes = [
-            models.Index(fields=['member', 'category_code']),
+            models.Index(fields=['member']),
             models.Index(fields=['ai_sector']),
         ]
     
     def get_weight(self):
-        """Return category weight for scoring algorithm"""
         weights = {
-            '6': 1.0,  # Shareholdings
-            '1': 0.9,  # Employment (directorships)
-            '2': 0.8,  # Donations
-            '5': 0.7,  # Land/property
-            '3': 0.5,  # Gifts
-            '4': 0.4,  # Visits
-            '7': 0.3,  # Misc
+            "shareholding": 4,
+            "consultancy": 3,
+            "speech": 2,
+            "gift": 2,
+            "trusteeship": 1,
+            "donation": 1,
+            "property": 1,
+            "other": 0.5,
         }
-        return weights.get(self.category_code, 0.5)
+        return weights.get(self.interest_type, 0.5)
     
     def __str__(self):
-        return f"{self.member.name} - {self.get_category_code_display()}"
+        return f"{self.member.name} - {self.interest_type}"
 
 
 class Division(models.Model):

@@ -177,3 +177,4 @@ class AnalyticsTrend(models.Model):
     
     def __str__(self):
         return f"{self.trend_type} - {self.calculated_at}"
+    

@@ -216,8 +216,8 @@ def get_member_interests(request, member_id):
         for interest in interests:
             data['interests'].append({
                 'id': interest.id,
-                'category': interest.get_category_code_display(),
-                'category_code': interest.category_code,
+                'category': interest.get_interest_type_display(),
+                'category_code': interest.interest_type,
                 'summary': interest.summary,
                 'registered_date': interest.registered_date.isoformat() if interest.registered_date else None,
                 'ai_sector': interest.ai_sector,

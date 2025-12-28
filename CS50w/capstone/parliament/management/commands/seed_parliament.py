@@ -1,5 +1,6 @@
 import requests
 import time
+from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from parliament.models import Member
@@ -118,6 +119,21 @@ class Command(BaseCommand):
             constituency = member_data['value'].get('latestHouseMembership', {}).get(
                 'membershipFrom', 'Unknown'
             )
+            # Membership start date (try a couple of possible fields)
+            start_date_str = None
+            latest_mem = member_data['value'].get('latestHouseMembership', {})
+            if latest_mem:
+                start_date_str = latest_mem.get('membershipStartDate') or latest_mem.get('membershipFrom')
+            parliament_start_date = None
+            if start_date_str:
+                try:
+                    # membership fields are typically ISO date strings
+                    parliament_start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')).date()
+                except Exception:
+                    try:
+                        parliament_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                    except Exception:
+                        parliament_start_date = None
             
             # Get portrait URL from details
             portrait_url = details.get('value', {}).get('thumbnailUrl', '')
@@ -130,7 +146,8 @@ class Command(BaseCommand):
                     'party': party,
                     'constituency': constituency,
                     'portrait_url': portrait_url,
-                    'current_status': True
+                    'current_status': True,
+                    'parliament_start_date': parliament_start_date,
                 }
             )
             

@@ -1,143 +1,164 @@
 import requests
 import time
+from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from parliament.models import Member, Division, Vote
-from datetime import datetime
+
 
 class Command(BaseCommand):
-    help = 'Syncs voting records (divisions) from UK Parliament API'
+    help = 'Syncs voting records (Commons divisions) from UK Parliament API'
 
     def add_arguments(self, parser):
-        parser.add_argument('--limit', type=int, default=10, help='Number of divisions to fetch')
-        parser.add_argument('--member-id', type=int, help='Sync votes for specific member only')
+        parser.add_argument('--limit', type=int, default=1000, help='Max votes per member (safety cap)')
+        parser.add_argument('--member-id', type=int, help='Sync votes for a specific member only')
+        parser.add_argument('--full-reload', action='store_true', help='Delete all divisions and votes before syncing')
+        parser.add_argument('--yes', action='store_true', help='Confirm destructive actions')
+        parser.add_argument('--throttle', type=float, default=0.25, help='Seconds to sleep between API calls')
+        parser.add_argument('--resume', action='store_true', help='Resume from member.last_synced_at')
 
     def handle(self, *args, **options):
         self.start_time = time.time()
-        self.processed_count = 0
+        self.processed_votes = 0
         self.error_count = 0
-        
+
         limit = options['limit']
+        throttle = options['throttle']
+        resume = options['resume']
         member_id = options.get('member_id')
-        
+
+        # Destructive reset
+        if options['full_reload']:
+            if not options['yes']:
+                self.stdout.write(self.style.ERROR('Full reload requires --yes'))
+                return
+            self.stdout.write(self.style.WARNING('Deleting ALL divisions and votes...'))
+            Vote.objects.all().delete()
+            Division.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS('Database cleared.'))
+
+        # Single member
         if member_id:
             try:
                 member = Member.objects.get(member_id=member_id)
-                self.stdout.write(f'Syncing votes for {member.name} (ID: {member_id})...')
-                self.sync_member_votes(member, limit)
+                self.stdout.write(f'Syncing votes for {member.name}')
+                self.sync_member_votes(member, limit, resume, throttle)
+                member.last_synced_at = datetime.now(timezone.utc)
+                member.save(update_fields=['last_synced_at'])
             except Member.DoesNotExist:
-                self.stdout.write(self.style.ERROR(f'Member {member_id} not found in database'))
-                self.error_count += 1
+                self.stdout.write(self.style.ERROR('Member not found'))
+                return
         else:
-            self.stdout.write(f'Fetching {limit} most recent divisions...\n')
-            self.sync_recent_divisions(limit)
+            members = Member.objects.filter(current_status=True).order_by('name')
+            total = members.count()
+            self.stdout.write(f'Starting full Commons sync for {total} MPs')
 
-        # Final Summary
-        total_time = time.time() - self.start_time
-        avg_time = total_time / self.processed_count if self.processed_count > 0 else 0
+            for idx, member in enumerate(members, start=1):
+                if not member.parliament_start_date:
+                    self.stdout.write(
+                        self.style.WARNING(f'Skipping {member.name} (missing start date)')
+                    )
+                    self.error_count += 1
+                    continue
 
-        self.stdout.write(self.style.SUCCESS(f'\n✓ Processing complete!'))
-        self.stdout.write(f'  Processed: {self.processed_count}')
+                self.stdout.write(f'[{idx}/{total}] {member.name}')
+                try:
+                    self.sync_member_votes(member, limit, resume, throttle)
+                    member.last_synced_at = datetime.now(timezone.utc)
+                    member.save(update_fields=['last_synced_at'])
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'Error: {e}'))
+                    self.error_count += 1
+
+        # Summary
+        elapsed = time.time() - self.start_time
+        avg = elapsed / self.processed_votes if self.processed_votes else 0
+
+        self.stdout.write(self.style.SUCCESS('\n✓ Sync complete'))
+        self.stdout.write(f'  Votes saved: {self.processed_votes}')
         self.stdout.write(f'  Errors: {self.error_count}')
-        self.stdout.write(f'  Total time: {total_time:.2f} seconds')
-        self.stdout.write(f'  Average: {avg_time:.2f} seconds per item.')
+        self.stdout.write(f'  Time: {elapsed:.2f}s')
+        self.stdout.write(f'  Avg per vote: {avg:.3f}s')
 
-    def sync_recent_divisions(self, limit):
-        """Standard sync: Gets a list of recent divisions and their full details"""
-        search_url = 'https://commonsvotes-api.parliament.uk/data/divisions.json/search'
-        params = {'queryParameters.take': min(limit, 50), 'queryParameters.skip': 0}
-        
-        try:
-            response = requests.get(search_url, params=params, timeout=15)
-            response.raise_for_status()
-            divisions_list = response.json()
-            
-            for item in divisions_list:
-                # API documentation shows search returns the full model, 
-                # but we'll fetch the specific ID detail to ensure we have every Aye/No list.
-                div_id = item.get('DivisionId')
-                if not div_id: continue
-                
-                self.process_single_division(div_id)
-                time.sleep(0.2) # Avoid hitting API too hard
-                
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Search failed: {e}'))
-            self.error_count += 1
+    # ============================================================
+    # Core sync logic
+    # ============================================================
 
-    def sync_member_votes(self, member, limit):
-        """Uses the 'membervoting' endpoint from your documentation"""
+    def sync_member_votes(self, member, limit, resume, throttle):
         url = 'https://commonsvotes-api.parliament.uk/data/divisions.json/membervoting'
-        params = {
-            'queryParameters.memberId': member.member_id,
-            'queryParameters.take': limit
-        }
-        
-        try:
-            response = requests.get(url, params=params, timeout=15)
+
+        page_size = 100
+        skip = 0
+        saved = 0
+
+        while saved < limit:
+            params = {
+                'queryParameters.memberId': member.member_id,
+                'queryParameters.take': page_size,
+                'queryParameters.skip': skip
+            }
+
+            response = requests.get(url, params=params, timeout=20)
             response.raise_for_status()
-            votes_data = response.json()
-            
-            for item in votes_data:
-                div_data = item.get('PublishedDivision')
-                if not div_data: continue
-                
-                # 1. Save/Update Division
-                division = self.save_division_data(div_data)
-                self.processed_count += 1
-                
-                # 2. Save the specific member's vote
-                vote_type = 'AYE' if item.get('MemberVotedAye') else 'NO'
-                # Note: API model shows separate bools for VotedAye and VotedNo
-                
+            results = response.json()
+
+            if not results:
+                break
+
+            for item in results:
+                div = item.get('PublishedDivision')
+                if not div:
+                    continue
+
+                vote_date = self.parse_date(div.get('Date'))
+
+                # Resume support
+                if resume and member.last_synced_at and vote_date:
+                    if vote_date <= member.last_synced_at.date():
+                        continue
+
+                # Parliament start date guard
+                if vote_date and vote_date < member.parliament_start_date:
+                    continue
+
+                division = self.save_division(div)
+
+                # Vote type
+                if item.get('MemberVotedAye'):
+                    vote_type = 'AYE'
+                elif item.get('MemberVotedNo'):
+                    vote_type = 'NO'
+                else:
+                    vote_type = 'DID_NOT_VOTE'
+
                 Vote.objects.update_or_create(
                     member=member,
                     division=division,
                     defaults={'vote_type': vote_type}
                 )
-                self.stdout.write(f'  Recorded {vote_type} on: {division.title[:50]}...')
 
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Member sync failed: {e}'))
-            self.error_count += 1
+                saved += 1
+                self.processed_votes += 1
 
-    def process_single_division(self, division_id):
-        """Fetches detail for one division and records all votes"""
-        url = f"https://commonsvotes-api.parliament.uk/data/division/{division_id}.json"
-        try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            division = self.save_division_data(data)
-            self.processed_count += 1
-            
-            # Record Ayes
-            for v in data.get('Ayes', []):
-                self.create_vote_record(division, v.get('MemberId'), 'AYE')
-            
-            # Record Noes
-            for v in data.get('Noes', []):
-                self.create_vote_record(division, v.get('MemberId'), 'NO')
-            
-            self.stdout.write(f'Synced Division: {division.title[:60]}...')
-            
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Error on ID {division_id}: {e}'))
-            self.error_count += 1
+                if saved >= limit:
+                    break
 
-    def save_division_data(self, data):
-        """Helper to create/update Division object from API dict"""
-        date_str = data.get('Date')
-        vote_date = None
-        if date_str:
-            try:
-                vote_date = datetime.fromisoformat(date_str.replace('Z', '+00:00')).date()
-            except: pass
+            skip += page_size
+            time.sleep(throttle)
 
-        division, created = Division.objects.update_or_create(
+        self.stdout.write(f'  → {saved} votes saved')
+
+    # ============================================================
+    # Helpers
+    # ============================================================
+
+    def save_division(self, data):
+        vote_date = self.parse_date(data.get('Date'))
+
+        division, _ = Division.objects.update_or_create(
             division_id=data.get('DivisionId'),
             defaults={
-                'title': data.get('Title', 'Unknown')[:500],
+                'title': (data.get('Title') or 'Unknown')[:500],
                 'date': vote_date,
                 'aye_count': data.get('AyeCount', 0),
                 'no_count': data.get('NoCount', 0),
@@ -145,15 +166,10 @@ class Command(BaseCommand):
         )
         return division
 
-    def create_vote_record(self, division, member_id, vote_type):
-        """Helper to link a vote to a member if they exist in our DB"""
-        if not member_id: return
+    def parse_date(self, value):
+        if not value:
+            return None
         try:
-            member = Member.objects.get(member_id=member_id)
-            Vote.objects.update_or_create(
-                member=member,
-                division=division,
-                defaults={'vote_type': vote_type}
-            )
-        except Member.DoesNotExist:
-            pass # Member not in our DB; skip vote recording
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).date()
+        except Exception:
+            return None

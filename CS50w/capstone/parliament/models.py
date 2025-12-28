@@ -11,6 +11,8 @@ class Member(models.Model):
     constituency = models.CharField(max_length=200)
     portrait_url = models.URLField(blank=True, null=True)
     current_status = models.BooleanField(default=True)
+    parliament_start_date = models.DateField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
     
     # Metadata
     last_updated = models.DateTimeField(auto_now=True)
@@ -25,6 +27,16 @@ class Member(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.constituency}"
+
+    def was_in_office_on(self, date):
+        """Return True if member's start date is on or before `date`.
+
+        For current MPs, `parliament_start_date` should be set; if it's
+        missing, callers should treat it as unknown and require manual review.
+        """
+        if not self.parliament_start_date:
+            return False
+        return self.parliament_start_date <= date
 
 
 class Interest(models.Model):
@@ -49,7 +61,7 @@ class Interest(models.Model):
 
     
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='interests')
-    raw_summary = models.TextField()
+    raw_summary = models.TextField(default="other")
     registered_date = models.DateField(null=True, blank=True)
     
     # AI-extracted fields (populated in Phase 2)

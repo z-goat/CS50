@@ -3,6 +3,7 @@ asgiref==3.11.0
 cachetools==6.2.4
 certifi==2025.11.12
 charset-normalizer==3.4.4
+dj-database-url==3.0.1
 Django==4.2.7
 django-picklefield==3.4.0
 google-ai-generativelanguage==0.4.0
@@ -29,5 +30,4 @@ tqdm==4.67.1
 typing_extensions==4.15.0
 urllib3==2.6.2
 whitenoise==6.11.0
-gunicorn==23.0.0 
-dj-database-url==2.2.0
+gunicorn==21.2.0

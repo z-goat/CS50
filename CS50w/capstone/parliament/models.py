@@ -70,7 +70,7 @@ class Interest(models.Model):
     ai_payer = models.CharField(max_length=200, blank=True, null=True)
     ai_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_current = models.BooleanField(default=True)
-    summary = models.CharField(max_length=300, blank=True, null=True)
+    summary = models.TextField(blank=True, null=True)
 
     # Add an expiration date field so that non-current interests can be tracked and deleted after a year
     expiration_date = models.DateTimeField(null=True, blank=True)

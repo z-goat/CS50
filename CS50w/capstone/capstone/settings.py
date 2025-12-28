@@ -27,7 +27,7 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 SECRET_KEY = 'django-insecure-vvztoghg4prl$v=l%-m)yd0x^jc1nihb#@0=2@w8065=v^mov@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'RENDER' not in os.environ
+DEBUG = True
 
 ALLOWED_HOSTS = []
 render_external_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')

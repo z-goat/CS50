@@ -106,7 +106,7 @@ class Command(BaseCommand):
                     # Create or update interest
                     Interest.objects.update_or_create(
                         member=member,
-                        category_code=category_code,
+                        interest_type=category_code,
                         summary=summary,
                         defaults={
                             'registered_date': registered_date,

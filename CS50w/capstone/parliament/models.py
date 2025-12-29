@@ -61,7 +61,7 @@ class Interest(models.Model):
 
     
     member = models.ForeignKey(Member, on_delete=models.CASCADE, related_name='interests')
-    raw_summary = models.TextField(default="other")
+    raw_summary = models.TextField(default="", blank=True)
     registered_date = models.DateField(null=True, blank=True)
     
     # AI-extracted fields (populated in Phase 2)

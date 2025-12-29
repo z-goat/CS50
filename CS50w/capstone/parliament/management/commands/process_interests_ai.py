@@ -11,8 +11,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--limit',
             type=int,
-            default=3238,
-            help='Number of interests to process (default: 3238)'
+            default=None,
+            help='Number of interests to process (default: all matching interests)'
         )
         parser.add_argument(
             '--force',
@@ -45,8 +45,15 @@ class Command(BaseCommand):
         if member_id is not None:
             interests = interests.filter(member_id=member_id)
 
-        # Step 3: order and slice
-        interests = interests.order_by("id")[:limit]
+        # Step 3: order
+        interests = interests.order_by("id")
+
+        # If no explicit limit provided, default to the number of matching interests
+        if limit is None:
+            limit = interests.count()
+
+        # Slice to the requested limit
+        interests = interests[:limit]
 
 
         

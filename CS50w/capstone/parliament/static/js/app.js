@@ -366,7 +366,7 @@ async function loadMemberInterests(memberId) {
                 ${interest.processed ? `<small class="text-muted">${confidencePercent}% confidence</small>` : '<small class="text-warning">Not processed</small>'}
               </div>
               <p class="mb-2">${interest.summary}</p>
-              ${interest.ai_payer ? `<p class="mb-1"><strong>Organization:</strong> ${interest.ai_payer}</p>` : ''}
+              ${interest.ai_payer ? `<p class="mb-1"><strong>Organization / Payer:</strong> ${interest.ai_payer}</p>` : ''}
               <p class="mb-1"><strong>Estimated Value:</strong> <span class="data-value">${valueStr}</span></p>
               ${interest.registered_date ? `<small class="text-muted">Registered: ${formatDate(interest.registered_date)}</small>` : ''}
             </div>

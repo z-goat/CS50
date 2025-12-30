@@ -5,12 +5,13 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.core.cache import cache
 from django.db import models
-from parliament.models import Member
+from parliament.models import Division, Member
 import json
 from .logic import (
     calculate_composite_influence_score,
     calculate_correlation_score,
     calculate_cri,
+    calculate_division_conflict_score,
 )
 
 
@@ -111,12 +112,23 @@ def get_member_profile(request, member_id):
     try:
         member = Member.objects.get(member_id=member_id)
         
-        # Get interest count (will be populated in Phase 2)
+        # Get interest count
         interest_count = member.interests.count()
-            
-        # Calculate composite influence score
-        influence_score = calculate_composite_influence_score(member)
-        
+
+        # Get all divisions the member has voted in
+        divisions = Division.objects.filter(votes__member=member).distinct()
+
+        if divisions.exists():
+            conflict_scores = [calculate_division_conflict_score(member, d) for d in divisions]
+            cri_scores = [calculate_cri(member, d) for d in divisions]
+
+            # Take average across all divisions
+            avg_conflict = round(sum(conflict_scores) / len(conflict_scores), 2)
+            avg_cri = round(sum(cri_scores) / len(cri_scores), 2)
+        else:
+            avg_conflict = 0.0
+            avg_cri = 0.0
+
         data = {
             'member_id': member.member_id,
             'name': member.name,
@@ -125,7 +137,8 @@ def get_member_profile(request, member_id):
             'portrait_url': member.portrait_url,
             'current_status': member.current_status,
             'interest_count': interest_count,
-            'influence_score': calculate_composite_influence_score(member),
+            'avg_conflict': avg_conflict,
+            'avg_cri': avg_cri,
             'last_updated': member.last_updated.isoformat(),
         }
         

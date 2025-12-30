@@ -300,8 +300,14 @@ async function renderMemberProfile(member) {
       </div>
       <div class="col-6">
         <div class="stat-box">
-          <span class="stat-value data-value">${(member.influence_score).toFixed(1)}</span>
+          <span class="stat-value data-value">${(member.avg_conflict || 0).toFixed(1)}</span>
           <div class="stat-label">Conflict<br>Score</div>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="stat-box text-center p-2 border rounded">
+          <span class="stat-value data-value">${(member.avg_cri || 0).toFixed(1)}</span>
+          <div class="stat-label">CRI</div>
         </div>
       </div>
       <div class="col-12 mt-3">

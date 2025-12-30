@@ -1,6 +1,7 @@
 from datetime import timedelta
 from django.db import models
 from django.utils import timezone
+from django.contrib.postgres.fields import ArrayField
 
 
 class Member(models.Model):
@@ -112,6 +113,11 @@ class Interest(models.Model):
     
     def __str__(self):
         return f"{self.member.name} - {self.interest_type}"
+    
+class PolicyTag(models.Model):
+    """Represents a policy area/tag for divisions and interests"""
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
 
 
 class Division(models.Model):
@@ -119,7 +125,6 @@ class Division(models.Model):
     division_id = models.IntegerField(unique=True, primary_key=True)
     title = models.CharField(max_length=500)
     date = models.DateField()
-    policy_area = models.CharField(max_length=100, blank=True, null=True)
     
     aye_count = models.IntegerField(default=0)
     no_count = models.IntegerField(default=0)
@@ -131,11 +136,20 @@ class Division(models.Model):
         ordering = ['-date']
         indexes = [
             models.Index(fields=['date']),
-            models.Index(fields=['policy_area']),
         ]
     
     def __str__(self):
         return f"{self.title} ({self.date})"
+
+    description = models.TextField(blank=True)
+    # New field to store AI-determined sectors
+    policy_tags = ArrayField(
+        models.CharField(max_length=50),
+        default=list,
+        blank=True,
+        help_text="AI-determined policy sectors"
+    )
+    policy_confidence = models.FloatField(default=0.0)
 
 
 class Vote(models.Model):

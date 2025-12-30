@@ -15,6 +15,10 @@ class InterestExtraction(BaseModel):
     value: Optional[float] = Field(description="Estimated monetary value in GBP")
     is_current: bool = Field(default=True, description="Whether interest is currently active")
     summary: Optional[str] = Field(description="Brief summary")
+    
+class DivisionTagExtraction(BaseModel):
+    sectors: list[str] = Field(default_factory=list, description="List of sector strings")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score 0-1")
 
 
 def extract_interest_data(summary_text: str) -> dict:
@@ -128,4 +132,53 @@ If information is not available, use null for that field. Be conservative with e
             'value': None,
             'is_current': True,
             'summary': None
+        }
+        
+
+
+def extract_division_tags(title: str, description: str = "") -> dict:
+    """
+    Use Gemini to categorize a division into policy sectors.
+    
+    Args:
+        title: Division title
+        description: Optional division description
+        
+    Returns:
+        dict with keys: sectors (list of strings), confidence (float)
+    """
+    model = genai.GenerativeModel('gemma-3-27b-it')
+    prompt = f"""
+You are an AI that categorizes UK parliamentary votes into policy areas.
+Classify the following vote into sectors (choose from Energy, Finance, Healthcare, Real Estate, Technology, Media, Legal, Consulting, Agriculture, Transport, Public Service, Social Welfare, Education, Diplomacy, Other).
+
+Title: "{title}"
+Description: "{description}"
+
+Respond ONLY with valid JSON:
+{{
+  "sectors": ["Finance", "Energy"],
+  "confidence": 0.95
+}}
+If unsure, pick the most relevant sector.
+"""
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        
+        # Clean markdown if present
+        text = text.replace("```json", "").replace("```", "").strip()
+        
+        data = json.loads(text)
+        
+        validated = DivisionTagExtraction(**data)
+        return {
+            "sectors": validated.sectors,
+            "confidence": validated.confidence
+        }
+    except Exception as e:
+        print(f"Division tagging error: {e}")
+        return {
+            "sectors": ["Other"],
+            "confidence": 0.0
         }

@@ -40,9 +40,7 @@ def calculate_division_conflict_score(member, division) -> float:
 
     relevant_interests = [
         i for i in interests
-        if division.policy_tags.filter(
-            id__in=i.policy_tags.values_list("id", flat=True)
-        ).exists()
+            if i.ai_sector and i.ai_sector in division.policy_tags
     ]
 
     if not relevant_interests:
@@ -72,9 +70,7 @@ def calculate_correlation_score(member, division) -> float:
     relevant = [
         i.get_weight()
         for i in interests
-        if division.policy_tags.filter(
-            id__in=i.policy_tags.values_list("id", flat=True)
-        ).exists()
+            if i.ai_sector and i.ai_sector in division.policy_tags
     ]
 
     if not relevant:

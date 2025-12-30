@@ -125,6 +125,7 @@ def get_member_profile(request, member_id):
             'portrait_url': member.portrait_url,
             'current_status': member.current_status,
             'interest_count': interest_count,
+            'influence_score': calculate_composite_influence_score(member),
             'last_updated': member.last_updated.isoformat(),
         }
         

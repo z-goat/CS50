@@ -300,7 +300,7 @@ async function renderMemberProfile(member) {
       </div>
       <div class="col-6">
         <div class="stat-box">
-          <span class="stat-value data-value">TBD</span>
+          <span class="stat-value data-value">${(member.influence_score).toFixed(1)}</span>
           <div class="stat-label">Conflict<br>Score</div>
         </div>
       </div>

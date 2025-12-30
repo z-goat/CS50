@@ -12,28 +12,39 @@ STANCE_MAP = {
     "neutral": 0,
 }
 
-def calculate_interest_conflict_score(interest, member, division) -> float:
-    vote = Vote.objects.filter(
-        member=member,
-        division=division
-    ).first()
+def calculate_interest_conflict_score(member, conflict_sectors: list[str]) -> float:
+    """
+    Calculate a member's conflict score based on their declared financial interests
+    and relevant policy sectors.
+    
+    Args:
+        member: Member instance
+        conflict_sectors: List of sector names considered a potential conflict
+    
+    Returns:
+        float: total conflict score
+    """
+    total_score = 0.0
 
-    if not vote:
-        return 0.0
+    for interest in member.interests.all():
+        # Only consider current interests
+        if not interest.is_current:
+            continue
 
-    vote_value = VOTE_MAP.get(vote.vote_type, 0)
-    stance_value = STANCE_MAP.get(interest.stance, 0)
+        # Determine which sector to use: AI sector preferred, fallback to interest_type
+        sector = interest.ai_sector or interest.interest_type
 
-    if stance_value == 0:
-        return 0.0
+        # If the interest matches a conflict sector, add weighted score
+        if sector in conflict_sectors:
+            weight = interest.get_weight()
+            
+            # Optionally scale by AI confidence if AI sector is used
+            if interest.ai_sector:
+                weight *= interest.ai_confidence or 1.0
 
-    if vote_value == stance_value:
-        return 0.0
+            total_score += weight
 
-    if vote_value == 0:
-        return 5.0 * interest.get_weight()
-
-    return 10.0 * interest.get_weight()
+    return total_score
 
 def calculate_division_conflict_score(member, division) -> float:
     interests = Interest.objects.filter(member=member)

@@ -7,6 +7,12 @@ from django.core.cache import cache
 from django.db import models
 from parliament.models import Member
 import json
+from .logic import (
+    calculate_composite_influence_score,
+    calculate_correlation_score,
+    calculate_cri,
+)
+
 
 
 def index(request, *args, **kwargs):
@@ -107,6 +113,9 @@ def get_member_profile(request, member_id):
         
         # Get interest count (will be populated in Phase 2)
         interest_count = member.interests.count()
+            
+        # Calculate composite influence score
+        influence_score = calculate_composite_influence_score(member)
         
         data = {
             'member_id': member.member_id,

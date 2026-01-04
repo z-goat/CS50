@@ -342,18 +342,28 @@ async function loadInfluencedVotes(memberId) {
       const relevantInterests = vote.relevant_interests.map(i => i.summary).join('; ');
       
       html += `
-        <div class="card mb-3 border-left-danger">
+        <div class="card mb-3 border-left-danger" style="border-left: 4px solid #dc3545;">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
                 <h5 class="card-title mb-1">${vote.division_title}</h5>
                 <small class="text-muted">${formatDate(vote.division_date)}</small>
               </div>
-              <span class="badge bg-warning text-dark">${conflictPercent}% Conflict</span>
+              <div>
+                <span class="badge bg-danger">${conflictPercent}% Conflict</span>
+                ${vote.ai_confidence ? `<br><small class="text-muted">Confidence: ${Math.round(vote.ai_confidence * 100)}%</small>` : ''}
+              </div>
             </div>
             <p class="mb-2"><strong>Vote:</strong> ${vote.vote_type}</p>
             <p class="mb-2"><strong>Related Interests:</strong></p>
             <p class="mb-0 text-muted small">${relevantInterests}</p>
+                      ${vote.ai_reasoning ? `
+                        <hr class="my-2">
+                        <div class="bg-light p-2 rounded">
+                          <strong>Analysis:</strong>
+                          <p class="mb-0 small">${vote.ai_reasoning}</p>
+                        </div>
+                      ` : ''}
           </div>
         </div>
       `;

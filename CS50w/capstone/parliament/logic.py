@@ -1,5 +1,6 @@
 from parliament.models import Division, Vote, Interest
 
+from parliament.ai_service import analyze_conflict_with_ai
 VOTE_MAP = {
     "AyeVote": 1,
     "NoVote": -1,
@@ -36,24 +37,38 @@ def calculate_interest_conflict_score(member, conflict_sectors: list[str]) -> fl
 
 
 def calculate_division_conflict_score(member, division, interests) -> float:
-    if not division.policy_tags:
+    """
+    Calculate conflict score using AI analysis
+    """
+    if not interests or not division.title:
         return 0.0
-
-    conflict_sectors = set(division.policy_tags)
-    score = 0.0
-
+    
+    # Build interests list for AI
+    interests_data = []
     for interest in interests:
         if not interest.is_current:
             continue
-
-        sector = interest.ai_sector or interest.interest_type
-        if sector in conflict_sectors:
-            weight = interest.get_weight()
-            if interest.ai_sector:
-                weight *= interest.ai_confidence or 1.0
-            score += weight
-
-    return score
+        
+        interests_data.append({
+            'summary': interest.summary or interest.raw_summary,
+            'sector': interest.ai_sector or interest.interest_type,
+            'payer': interest.ai_payer or 'Unknown',
+            'value': float(interest.ai_value) if interest.ai_value else None,
+        })
+    
+    if not interests_data:
+        return 0.0
+    
+    # Use AI to analyze the conflict
+    analysis = analyze_conflict_with_ai(
+        member_name=member.name,
+        interests=interests_data,
+        division_title=division.title,
+        division_description=division.description or ""
+    )
+    
+    # Return the AI-determined conflict score
+    return analysis.get('conflict_score', 0.0)
 
 
 def calculate_composite_influence_score(member) -> float:

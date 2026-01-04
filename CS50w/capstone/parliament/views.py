@@ -1,9 +1,11 @@
 import requests
+import hashlib
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.core.cache import cache
 from django.db import models
+from django.conf import settings
 from parliament.models import Division, Member
 from .logic import (
     calculate_composite_influence_score,
@@ -11,6 +13,7 @@ from .logic import (
     calculate_division_conflict_score,
 )
 
+from parliament.ai_service import analyze_conflict_with_ai
 
 def index(request, *args, **kwargs):
     return render(request, 'parliament/index.html')
@@ -251,16 +254,18 @@ def get_influenced_votes(request, member_id):
     Get votes influenced by member's interests
     """
     try:
+        from parliament.models import Interest
+
         member = Member.objects.get(member_id=member_id)
         interests = list(member.interests.all())
-        
+
         # Get all votes for this member with related divisions
         votes = member.votes.select_related('division').all()
-        
+
         influenced = []
         for vote in votes:
             conflict = calculate_division_conflict_score(member, vote.division, interests)
-            
+
             # Only include votes with conflict > 0.1
             if conflict > 0.1:
                 # Find which interests are related to this division
@@ -269,16 +274,16 @@ def get_influenced_votes(request, member_id):
                     # Check if any policy tags match the interest sector
                     if interest.ai_sector and vote.division.policy_tags:
                         try:
-                            tags = [tag.strip() for tag in vote.division.policy_tags.split(',')]
-                            if any(interest.ai_sector.lower() in tag.lower() for tag in tags if tag):
+                            tags = [tag.strip() for tag in vote.division.policy_tags]
+                            if any(interest.ai_sector.lower() in (tag or '').lower() for tag in tags):
                                 related_interests.append(interest)
                         except (AttributeError, TypeError):
                             pass
-                
-                # If no tag match, include all interests if any exist
+
+                # If no tag match, include a few interests as fallback
                 if not related_interests and interests:
                     related_interests = interests[:3]  # Limit to first 3
-                
+
                 # Only add if we have related interests
                 if related_interests:
                     influenced.append({
@@ -296,14 +301,74 @@ def get_influenced_votes(request, member_id):
                             for i in related_interests
                         ]
                     })
-        
+
+        # For each influenced vote, get AI analysis if not already cached
+        CACHE_TTL = getattr(settings, 'AI_CONFLICT_CACHE_TTL', 60 * 60 * 24 * 7)  # 7 days default
+        FAILURE_TTL = getattr(settings, 'AI_CONFLICT_FAILURE_TTL', 60 * 5)  # 5 minutes for failures
+
+        for vote_data in influenced:
+            try:
+                division = Division.objects.get(id=vote_data['division_id'])
+
+                # Build a stable hash of the relevant interests (id + last_ai_processed)
+                interest_meta = []
+                for ri in vote_data['relevant_interests']:
+                    try:
+                        iobj = Interest.objects.get(id=ri['id'])
+                        ts = iobj.last_ai_processed.isoformat() if iobj.last_ai_processed else 'none'
+                        interest_meta.append(f"{iobj.id}:{ts}")
+                    except Exception:
+                        interest_meta.append(f"{ri['id']}:missing")
+
+                interest_key = '|'.join(sorted(interest_meta))
+                key_raw = f"ai_conflict:{member.member_id}:{division.id}:{interest_key}"
+                cache_key = hashlib.sha1(key_raw.encode('utf-8')).hexdigest()
+
+                cached_analysis = cache.get(cache_key)
+                if cached_analysis is not None:
+                    analysis = cached_analysis
+                else:
+                    interests_list = [
+                        {
+                            'summary': i.summary or i.raw_summary,
+                            'sector': i.ai_sector or i.interest_type,
+                            'payer': i.ai_payer or 'Unknown',
+                            'value': float(i.ai_value) if i.ai_value else None,
+                        }
+                        for i in [Interest.objects.get(id=ri['id']) for ri in vote_data['relevant_interests']]
+                    ]
+
+                    analysis = analyze_conflict_with_ai(
+                        member_name=member.name,
+                        interests=interests_list,
+                        division_title=division.title,
+                        division_description=division.description or ""
+                    )
+
+                    # Cache the analysis; if AI reported no confidence or an error, cache briefly
+                    try:
+                        confidence = float(analysis.get('confidence', 0.0))
+                    except Exception:
+                        confidence = 0.0
+
+                    ttl = CACHE_TTL if confidence >= 0.1 else FAILURE_TTL
+                    cache.set(cache_key, analysis, ttl)
+
+                vote_data['ai_reasoning'] = analysis.get('reasoning', 'Unable to analyze')
+                vote_data['ai_confidence'] = analysis.get('confidence', 0.0)
+
+            except Exception as e:
+                vote_data['ai_reasoning'] = f'Error during analysis: {str(e)}'
+                vote_data['ai_confidence'] = 0.0
+
         # Sort by conflict score descending
         influenced.sort(key=lambda x: x['conflict_score'], reverse=True)
-        
+
         return JsonResponse({
             'member_id': member.member_id,
-            'votes': influenced[:20]  # Return top 20 most conflicted votes
+            'votes': influenced[:10]  # Return top 10 most conflicted votes (reduced for performance)
         })
-        
+    except Member.DoesNotExist:
+        return JsonResponse({'error': 'Member not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

@@ -15,6 +15,53 @@ from .logic import (
 def index(request, *args, **kwargs):
     return render(request, 'parliament/index.html')
 
+@require_http_methods(["GET"])
+def list_all_members(request):
+    """
+    List all MPs with optional filtering
+    Query params: party, constituency (partial match)
+    """
+    queryset = Member.objects.filter(current_status=True)
+    
+    # Apply filters
+    party = request.GET.get('party')
+    if party:
+        queryset = queryset.filter(party__iexact=party)
+    
+    constituency = request.GET.get('constituency')
+    if constituency:
+        queryset = queryset.filter(constituency__icontains=constituency)
+    
+    # Pagination
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 50))
+    
+    start = (page - 1) * page_size
+    end = start + page_size
+    
+    members = queryset[start:end]
+    total = queryset.count()
+    
+    data = {
+        'members': [
+            {
+                'member_id': m.member_id,
+                'name': m.name,
+                'party': m.party,
+                'constituency': m.constituency,
+                'portrait_url': m.portrait_url,
+            }
+            for m in members
+        ],
+        'pagination': {
+            'page': page,
+            'page_size': page_size,
+            'total': total,
+            'total_pages': (total + page_size - 1) // page_size
+        }
+    }
+    
+    return JsonResponse(data)
 
 @require_http_methods(["GET"])
 def search_by_constituency(request):

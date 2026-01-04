@@ -63,6 +63,66 @@ def list_all_members(request):
     
     return JsonResponse(data)
 
+
+@require_http_methods(["GET"])
+def get_stats(request):
+    """
+    Get basic statistics about the database
+    """
+    from parliament.models import Interest 
+    
+    stats = {
+        'total_members': Member.objects.filter(current_status=True).count(),
+        'parties': list(
+            Member.objects.filter(current_status=True)
+            .values_list('party', flat=True)
+            .distinct()
+            .order_by('party')
+        ),
+        'total_interests': Interest.objects.count(),  
+        'last_sync': Member.objects.order_by('-last_updated').first().last_updated.isoformat()
+        if Member.objects.exists() else None
+    }
+    
+    return JsonResponse(stats)
+
+
+@require_http_methods(["GET"])
+def get_member_interests(request, member_id):
+    """
+    Get all interests for a specific member with AI categorization
+    """
+    try:
+        member = Member.objects.get(member_id=member_id)
+        interests = member.interests.all()
+        
+        data = {
+            'member_id': member.member_id,
+            'name': member.name,
+            'total_interests': interests.count(),
+            'interests': []
+        }
+        
+        for interest in interests:
+            data['interests'].append({
+                'id': interest.id,
+                'category': interest.get_interest_type_display(),
+                'category_code': interest.interest_type,
+                'summary': interest.summary,
+                'registered_date': interest.registered_date.isoformat() if interest.registered_date else None,
+                'ai_sector': interest.ai_sector,
+                'ai_confidence': interest.ai_confidence,
+                'ai_payer': interest.ai_payer,
+                'ai_value': float(interest.ai_value) if interest.ai_value else None,
+                'is_current': interest.is_current,
+                'processed': interest.last_ai_processed is not None
+            })
+        
+        return JsonResponse(data)
+        
+    except Member.DoesNotExist:
+        return JsonResponse({'error': 'Member not found'}, status=404)
+
 @require_http_methods(["GET"])
 def search_by_constituency(request):
     query = request.GET.get('q', '').strip()

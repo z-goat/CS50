@@ -122,7 +122,7 @@ class PolicyTag(models.Model):
 
 class Division(models.Model):
     """Represents a parliamentary vote/division"""
-    division_id = models.IntegerField(unique=True, primary_key=True)
+    id = models.IntegerField(unique=True, primary_key=True)
     title = models.CharField(max_length=500)
     date = models.DateField()
     

@@ -268,29 +268,34 @@ def get_influenced_votes(request, member_id):
                 for interest in interests:
                     # Check if any policy tags match the interest sector
                     if interest.ai_sector and vote.division.policy_tags:
-                        tags = vote.division.policy_tags.split(',')
-                        if any(interest.ai_sector.lower() in tag.lower() for tag in tags):
-                            related_interests.append(interest)
+                        try:
+                            tags = [tag.strip() for tag in vote.division.policy_tags.split(',')]
+                            if any(interest.ai_sector.lower() in tag.lower() for tag in tags if tag):
+                                related_interests.append(interest)
+                        except (AttributeError, TypeError):
+                            pass
                 
                 # If no tag match, include all interests if any exist
                 if not related_interests and interests:
                     related_interests = interests[:3]  # Limit to first 3
                 
-                influenced.append({
-                    'division_id': vote.division.id,
-                    'division_title': vote.division.title,
-                    'division_date': vote.division.date.isoformat(),
-                    'vote_type': vote.vote_type,
-                    'conflict_score': conflict,
-                    'relevant_interests': [
-                        {
-                            'id': i.id,
-                            'summary': i.summary,
-                            'sector': i.ai_sector
-                        }
-                        for i in related_interests
-                    ]
-                })
+                # Only add if we have related interests
+                if related_interests:
+                    influenced.append({
+                        'division_id': vote.division.id,
+                        'division_title': vote.division.title,
+                        'division_date': vote.division.date.isoformat(),
+                        'vote_type': vote.vote_type,
+                        'conflict_score': conflict,
+                        'relevant_interests': [
+                            {
+                                'id': i.id,
+                                'summary': i.summary,
+                                'sector': i.ai_sector
+                            }
+                            for i in related_interests
+                        ]
+                    })
         
         # Sort by conflict score descending
         influenced.sort(key=lambda x: x['conflict_score'], reverse=True)
@@ -300,5 +305,5 @@ def get_influenced_votes(request, member_id):
             'votes': influenced[:20]  # Return top 20 most conflicted votes
         })
         
-    except Member.DoesNotExist:
-        return JsonResponse({'error': 'Member not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

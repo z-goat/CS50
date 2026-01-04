@@ -304,12 +304,6 @@ async function renderMemberProfile(member) {
           <div class="stat-label">Conflict<br>Score</div>
         </div>
       </div>
-      <div class="col-6">
-        <div class="stat-box text-center p-2 border rounded">
-          <span class="stat-value data-value">${(member.avg_cri || 0).toFixed(1)}</span>
-          <div class="stat-label">CRI</div>
-        </div>
-      </div>
       <div class="col-12 mt-3">
         <small class="text-muted" style="font-size: 0.75rem;">
           <strong>Last Updated:</strong> ${formatDate(member.last_updated)}
@@ -319,8 +313,63 @@ async function renderMemberProfile(member) {
   `;
   document.getElementById('mp-stats').innerHTML = statsHtml;
 
-  // Load interests
+  // Load influenced votes and interests
+  await loadInfluencedVotes(member.member_id);
   await loadMemberInterests(member.member_id);
+}
+
+async function loadInfluencedVotes(memberId) {
+  const container = document.getElementById('influenced-votes-container');
+  container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+  
+  try {
+    const response = await fetch(`/api/members/${memberId}/influenced-votes/`);
+    const data = await response.json();
+    
+    if (data.votes.length === 0) {
+      container.innerHTML = `
+        <div class="alert alert-info">
+          <p class="mb-0">No votes with significant interest conflicts found.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    let html = `<div class="votes-list">`;
+    
+    data.votes.forEach(vote => {
+      const conflictPercent = Math.round(vote.conflict_score * 100);
+      const relevantInterests = vote.relevant_interests.map(i => i.summary).join('; ');
+      
+      html += `
+        <div class="card mb-3 border-left-danger">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h5 class="card-title mb-1">${vote.division_title}</h5>
+                <small class="text-muted">${formatDate(vote.division_date)}</small>
+              </div>
+              <span class="badge bg-warning text-dark">${conflictPercent}% Conflict</span>
+            </div>
+            <p class="mb-2"><strong>Vote:</strong> ${vote.vote_type}</p>
+            <p class="mb-2"><strong>Related Interests:</strong></p>
+            <p class="mb-0 text-muted small">${relevantInterests}</p>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+  } catch (err) {
+    console.error('Failed to load influenced votes:', err);
+    container.innerHTML = `
+      <div class="alert alert-warning">
+        Failed to load influenced votes. Please try again.
+      </div>
+    `;
+  }
 }
 
 async function loadMemberInterests(memberId) {

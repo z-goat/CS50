@@ -245,3 +245,60 @@ def get_member_profile(request, member_id):
 
     except Member.DoesNotExist:
         return JsonResponse({'error': 'Member not found'}, status=404)
+@require_http_methods(["GET"])
+def get_influenced_votes(request, member_id):
+    """
+    Get votes influenced by member's interests
+    """
+    try:
+        member = Member.objects.get(member_id=member_id)
+        interests = list(member.interests.all())
+        
+        # Get all votes for this member with related divisions
+        votes = member.votes.select_related('division').all()
+        
+        influenced = []
+        for vote in votes:
+            conflict = calculate_division_conflict_score(member, vote.division, interests)
+            
+            # Only include votes with conflict > 0.1
+            if conflict > 0.1:
+                # Find which interests are related to this division
+                related_interests = []
+                for interest in interests:
+                    # Check if any policy tags match the interest sector
+                    if interest.ai_sector and vote.division.policy_tags:
+                        tags = vote.division.policy_tags.split(',')
+                        if any(interest.ai_sector.lower() in tag.lower() for tag in tags):
+                            related_interests.append(interest)
+                
+                # If no tag match, include all interests if any exist
+                if not related_interests and interests:
+                    related_interests = interests[:3]  # Limit to first 3
+                
+                influenced.append({
+                    'division_id': vote.division.id,
+                    'division_title': vote.division.title,
+                    'division_date': vote.division.date.isoformat(),
+                    'vote_type': vote.vote_type,
+                    'conflict_score': conflict,
+                    'relevant_interests': [
+                        {
+                            'id': i.id,
+                            'summary': i.summary,
+                            'sector': i.ai_sector
+                        }
+                        for i in related_interests
+                    ]
+                })
+        
+        # Sort by conflict score descending
+        influenced.sort(key=lambda x: x['conflict_score'], reverse=True)
+        
+        return JsonResponse({
+            'member_id': member.member_id,
+            'votes': influenced[:20]  # Return top 20 most conflicted votes
+        })
+        
+    except Member.DoesNotExist:
+        return JsonResponse({'error': 'Member not found'}, status=404)

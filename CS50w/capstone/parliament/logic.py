@@ -47,20 +47,15 @@ def calculate_interest_conflict_score(member, conflict_sectors: list[str]) -> fl
     return total_score
 
 def calculate_division_conflict_score(member, division) -> float:
-    interests = Interest.objects.filter(member=member)
-
-    relevant_interests = [
-        i for i in interests
-            if i.ai_sector and i.ai_sector in division.policy_tags
-    ]
-
-    if not relevant_interests:
+    if not division.policy_tags:
         return 0.0
 
-    scores = [
-        calculate_interest_conflict_score(i, member, division)
-        for i in relevant_interests
-    ]
+    score = calculate_interest_conflict_score(
+        member,
+        division.policy_tags
+    )
+
+    return round(score, 2)
 
     return round(sum(scores) / len(relevant_interests), 2)
 

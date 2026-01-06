@@ -32,8 +32,9 @@ class Command(BaseCommand):
         # Apply filtering if member_id is specified
         interests = Interest.objects.all()
         if options['member_id']:
-            interests = interests.filter(member_id=options['member_id'])
+            interests = interests.filter(member=options['member_id'])
 
+        count = interests.count()
         interests.update(
             ai_sector=None,
             ai_confidence=0.0,
@@ -44,5 +45,5 @@ class Command(BaseCommand):
         )
         
         self.stdout.write(self.style.SUCCESS(
-            f'✓ Cleared AI data from {total} interests'
+            f'✓ Cleared AI data from {count} interests'
         ))

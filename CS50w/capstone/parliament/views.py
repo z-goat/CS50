@@ -74,6 +74,7 @@ def get_stats(request):
     """
     from parliament.models import Interest 
     
+    last_member = Member.objects.order_by('-last_updated').first()
     stats = {
         'total_members': Member.objects.filter(current_status=True).count(),
         'parties': list(
@@ -83,8 +84,7 @@ def get_stats(request):
             .order_by('party')
         ),
         'total_interests': Interest.objects.count(),  
-        'last_sync': Member.objects.order_by('-last_updated').first().last_updated.isoformat()
-        if Member.objects.exists() else None
+        'last_sync': last_member.last_updated.isoformat() if last_member else None
     }
     
     return JsonResponse(stats)
@@ -109,9 +109,9 @@ def get_member_interests(request, member_id):
         for interest in interests:
             data['interests'].append({
                 'id': interest.id,
-                'category': interest.get_interest_type_display(),
+                'category': interest.get_interest_type_display() if interest.interest_type else 'Unknown',
                 'category_code': interest.interest_type,
-                'summary': interest.summary,
+                'summary': interest.summary or interest.raw_summary,
                 'registered_date': interest.registered_date.isoformat() if interest.registered_date else None,
                 'ai_sector': interest.ai_sector,
                 'ai_confidence': interest.ai_confidence,

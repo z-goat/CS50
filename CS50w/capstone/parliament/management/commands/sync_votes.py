@@ -154,9 +154,13 @@ class Command(BaseCommand):
 
     def save_division(self, data):
         vote_date = self.parse_date(data.get('Date'))
+        
+        division_id = data.get('DivisionId')
+        if not division_id:
+            return None
 
         division, _ = Division.objects.update_or_create(
-            division_id=data.get('DivisionId'),
+            id=division_id,
             defaults={
                 'title': (data.get('Title') or 'Unknown')[:500],
                 'date': vote_date,

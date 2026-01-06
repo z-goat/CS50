@@ -57,7 +57,7 @@ class Command(BaseCommand):
             model = available[k]
             qs = model.objects.all()
             if member_id and hasattr(model, 'member'):
-                qs = qs.filter(member_id=member_id)
+                qs = qs.filter(member=member_id)
 
             count = qs.count()
             if count == 0:

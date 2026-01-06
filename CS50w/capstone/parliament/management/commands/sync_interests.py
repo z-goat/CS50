@@ -84,6 +84,18 @@ class Command(BaseCommand):
             for interest_item in interests_data:
                 category = interest_item.get('category', {})
                 category_code = str(category.get('id', '7'))
+                # Map category code to interest type string
+                category_map = {
+                    '1': 'shareholding',
+                    '2': 'consultancy',
+                    '3': 'speech',
+                    '4': 'gift',
+                    '5': 'trusteeship',
+                    '6': 'donation',
+                    '7': 'property',
+                    '8': 'other',
+                }
+                interest_type = category_map.get(category_code, 'other')
                 
                 # Get all interest lines
                 lines = interest_item.get('interests', [])
@@ -106,9 +118,9 @@ class Command(BaseCommand):
                     # Create or update interest
                     Interest.objects.update_or_create(
                         member=member,
-                        interest_type=category_code,
-                        summary=summary,
+                        raw_summary=summary,
                         defaults={
+                            'interest_type': interest_type,
                             'registered_date': registered_date,
                             'is_current': True
                         }

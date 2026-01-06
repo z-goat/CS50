@@ -15,4 +15,4 @@ class Command(BaseCommand):
             div.policy_confidence = result.get("confidence", 0.0)
             div.save()
             
-            self.stdout.write(f"Division {div.division_id} tagged: {result['sectors']}")
+            self.stdout.write(f"Division {div.id} tagged: {result['sectors']}")

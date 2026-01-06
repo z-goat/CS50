@@ -21,9 +21,10 @@ class Command(BaseCommand):
         )
         
         parser.add_argument(
-            "--member_id",
+            "--member-id",
             type=int,
             help="Process interests for a specific member ID only",
+            dest="member_id",
             default=None,
         )
 
@@ -43,7 +44,7 @@ class Command(BaseCommand):
 
         # Step 2: member filter
         if member_id is not None:
-            interests = interests.filter(member_id=member_id)
+            interests = interests.filter(member=member_id)
 
         # Step 3: order
         interests = interests.order_by("id")
@@ -71,13 +72,18 @@ class Command(BaseCommand):
         
         for interest in interests_list:
             try:
-                extracted = extract_interest_data(interest.summary)
+                # Use raw_summary if summary is empty
+                text_to_extract = interest.summary or interest.raw_summary
+                if not text_to_extract:
+                    errors += 1
+                    self.stdout.write(self.style.WARNING(f'Skipping interest {interest.id}: no text to process'))
+                    continue
 
+                extracted = extract_interest_data(text_to_extract)
 
                 required_fields = {"interest_type", "sector", "confidence", "payer", "value", "is_current", "summary"}
                 if not extracted or not required_fields.issubset(extracted):
                     raise ValueError(f"Incomplete AI response: {extracted}")
-
 
                 interest.interest_type = extracted.get('interest_type')
                 interest.ai_sector = extracted.get('sector')
@@ -98,6 +104,7 @@ class Command(BaseCommand):
             except Exception as e:
                 errors += 1
                 self.stdout.write(self.style.WARNING(f'Error on {interest.id}: {e}'))
+                time.sleep(1.5)
                 time.sleep(1.5)
                 
         end_time = time.perf_counter()

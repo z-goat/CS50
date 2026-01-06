@@ -109,6 +109,8 @@ class Interest(models.Model):
             "property": 1,
             "other": 0.5,
         }
+        if not self.interest_type:
+            return 0.5
         return weights.get(self.interest_type, 0.5)
     
     def __str__(self):

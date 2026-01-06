@@ -136,7 +136,7 @@ class Command(BaseCommand):
                         parliament_start_date = None
             
             # Get portrait URL from details
-            portrait_url = details.get('value', {}).get('thumbnailUrl', '')
+            portrait_url = details.get('value', {}).get('thumbnailUrl', '') if details else ''
             
             # Create or update member
             member, created = Member.objects.update_or_create(
@@ -145,7 +145,7 @@ class Command(BaseCommand):
                     'name': name,
                     'party': party,
                     'constituency': constituency,
-                    'portrait_url': portrait_url,
+                    'portrait_url': portrait_url or '',
                     'current_status': True,
                     'parliament_start_date': parliament_start_date,
                 }

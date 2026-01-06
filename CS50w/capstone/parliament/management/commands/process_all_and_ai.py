@@ -87,6 +87,19 @@ class Command(BaseCommand):
             if not skip_seed:
                 self.stdout.write('Seeding MPs (seed_parliament)...')
                 call_command('seed_parliament')
+            
+            # Step 1.5: sync interests and votes
+            self.stdout.write('Syncing financial interests (sync_interests)...')
+            args = []
+            if member_id is not None:
+                args.extend(['--member-id', str(member_id)])
+            call_command('sync_interests', *args)
+            
+            self.stdout.write('Syncing voting records (sync_votes)...')
+            args = []
+            if member_id is not None:
+                args.extend(['--member-id', str(member_id)])
+            call_command('sync_votes', *args)
 
             # Step 2: tag divisions via AI
             if not skip_tags:
@@ -96,15 +109,12 @@ class Command(BaseCommand):
             # Step 3: process interests via existing command
             if not skip_interests:
                 self.stdout.write('Processing interests via AI (process_interests_ai)...')
-                args = []
+                args = ['--force']  # Always force to process everything
                 if limit_interests is not None:
                     args.extend(['--limit', str(limit_interests)])
-                if force:
-                    args.append('--force')
                 if member_id is not None:
-                    args.extend(['--member_id', str(member_id)])
+                    args.extend(['--member-id', str(member_id)])
 
-                # Dry-run handling: process but don't save by using --force combined with not saving? We'll run normally but respect dry_run when updating votes below.
                 call_command('process_interests_ai', *args)
 
             # Step 4: compute vote conflicts and update Vote.conflict_score
@@ -112,7 +122,7 @@ class Command(BaseCommand):
 
             votes_qs = Vote.objects.all().select_related('member', 'division')
             if member_id is not None:
-                votes_qs = votes_qs.filter(member_id=member_id)
+                votes_qs = votes_qs.filter(member=member_id)
 
             total_votes = votes_qs.count()
             if total_votes == 0:
@@ -138,7 +148,7 @@ class Command(BaseCommand):
                     interests_data = [
                         {
                             'summary': i.summary or i.raw_summary,
-                            'sector': i.ai_sector or i.interest_type,
+                            'sector': i.ai_sector or i.interest_type or 'Other',
                             'payer': i.ai_payer or 'Unknown',
                             'value': float(i.ai_value) if i.ai_value else None,
                         }
@@ -185,8 +195,8 @@ class Command(BaseCommand):
                     else:
                         # Save score
                         vote.conflict_score = conflict_score
-                        vote.save()
-                        self.stdout.write(self.style.SUCCESS(f'Updated vote {vote.id if hasattr(vote, "id") else "<no-id>"} conflict={conflict_score:.3f} (member {vote.member.member_id})'))
+                        vote.save(update_fields=['conflict_score'])
+                        self.stdout.write(self.style.SUCCESS(f'Updated vote {vote.division.id} conflict={conflict_score:.3f} (member {vote.member.member_id})'))
 
                     processed += 1
                     time.sleep(0.25)

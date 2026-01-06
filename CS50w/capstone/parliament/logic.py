@@ -87,17 +87,20 @@ def calculate_correlation_score(member, division, interests) -> float:
     relevant = [
         i.get_weight()
         for i in interests
-        if i.ai_sector and i.ai_sector in division.policy_tags
+        if i.ai_sector and any(i.ai_sector.lower() in tag.lower() for tag in division.policy_tags if tag)
     ]
 
     if not relevant:
         return 0.0
 
-    return sum(relevant) / len(relevant) * 10
+    return round(sum(relevant) / len(relevant) * 10, 2)
 
 
-def calculate_cri(member, division, interests, composite_score):
+def calculate_cri(member, division, interests, composite_score) -> float:
     correlation = calculate_correlation_score(member, division, interests)
     conflict = calculate_division_conflict_score(member, division, interests)
-
-    return round((correlation + (10 - conflict) + composite_score) / 3, 2)
+    # CRI is composite influence + correlation - conflict risk
+    if conflict > 10:
+        conflict = 10
+    cri_value = (composite_score + correlation) / 2 if correlation > 0 else composite_score
+    return round(max(0, cri_value - (conflict / 2)), 2)
